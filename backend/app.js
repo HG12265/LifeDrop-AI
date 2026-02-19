@@ -24,6 +24,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 const SECRET_KEY = process.env.SECRET_KEY || 'lifedrop-super-secret-key-2024';
 
+const PORT = process.env.PORT || 5000;
 // ==================== MIDDLEWARE ====================
 app.use(express.json());
 app.use(cors({
@@ -1813,8 +1814,6 @@ async function initDatabase() {
 }
 
 // ==================== START SERVER ====================
-const PORT = process.env.PORT || 5000; // Intha line mela irukanum
-
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 LifeDrop Node.js Backend running on port ${PORT}`);
     console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
