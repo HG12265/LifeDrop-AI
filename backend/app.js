@@ -1,4 +1,3 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -10,6 +9,7 @@ const helmet = require('helmet');
 const axios = require('axios');
 const crypto = require('crypto');
 const https = require('https');
+const cors = require("cors");
 const { ObjectId } = mongoose.Types;
 require('dotenv').config();
 
@@ -27,7 +27,11 @@ const SECRET_KEY = process.env.SECRET_KEY || 'lifedrop-super-secret-key-2024';
 // ==================== MIDDLEWARE ====================
 app.use(express.json());
 app.use(cors({
-    origin: "https://lifedrop-ai.vercel.app",
+    origin: [
+    "http://localhost:5173",
+    "https://life-drop-ai.vercel.app"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
 }));
 app.use(helmet({
