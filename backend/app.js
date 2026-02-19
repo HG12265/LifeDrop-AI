@@ -9,7 +9,6 @@ const helmet = require('helmet');
 const axios = require('axios');
 const crypto = require('crypto');
 const https = require('https');
-const cors = require("cors");
 const { ObjectId } = mongoose.Types;
 require('dotenv').config();
 
