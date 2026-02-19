@@ -1,2 +1,3 @@
 // src/config.js
-export const API_URL = "https://lifedrop-ai.onrender.com/";
+export const API_URL = "http://localhost:5000";
+

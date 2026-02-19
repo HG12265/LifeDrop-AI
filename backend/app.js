@@ -27,7 +27,7 @@ const SECRET_KEY = process.env.SECRET_KEY || 'lifedrop-super-secret-key-2024';
 // ==================== MIDDLEWARE ====================
 app.use(express.json());
 app.use(cors({
-    origin: true,
+    origin: "https://lifedrop-ai.vercel.app",
     credentials: true
 }));
 app.use(helmet({
@@ -1813,6 +1813,8 @@ async function initDatabase() {
 }
 
 // ==================== START SERVER ====================
+const PORT = process.env.PORT || 5000; // Intha line mela irukanum
+
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 LifeDrop Node.js Backend running on port ${PORT}`);
     console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
