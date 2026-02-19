@@ -1,5 +1,3 @@
-// LifeDrop Backend - Node.js Version (Converted from Python Flask)
-// Single file - same as original app.py structure
 
 const express = require('express');
 const mongoose = require('mongoose');
