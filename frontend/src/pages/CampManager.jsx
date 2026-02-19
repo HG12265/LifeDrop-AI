@@ -20,6 +20,7 @@ const CampManager = () => {
     const res = await fetch(`${API_URL}/api/admin/camps/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(formData)
     });
     if(res.ok) {
@@ -31,7 +32,10 @@ const CampManager = () => {
 
   const handleDelete = async (id) => {
     if(!window.confirm("Delete this camp?")) return;
-    const res = await fetch(`${API_URL}/api/admin/camps/delete/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${API_URL}/api/admin/camps/delete/${id}`, { 
+      method: 'DELETE', 
+      credentials: 'include'
+    });
     if(res.ok) fetchCamps();
   };
 

@@ -27,7 +27,9 @@ const DonorMatching = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch(`${API_URL}/api/match-donors/${id}`)
+        fetch(`${API_URL}/api/match-donors/${id}`, {
+    credentials: 'include'   // 🔥 MUST
+  })
             .then(res => res.json())
             .then(val => {
                 setData(val);
@@ -41,6 +43,7 @@ const DonorMatching = () => {
             const res = await fetch(`${API_URL}/api/send-request`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ donor_id: donorId, request_id: id })
             });
             const result = await res.json();

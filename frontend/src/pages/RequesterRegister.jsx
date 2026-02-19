@@ -19,6 +19,7 @@ const RequesterRegister = () => {
       const res = await fetch(`${API_URL}/api/verify/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email: formData.email })
       });
       const data = await res.json();
@@ -41,6 +42,7 @@ const finalizeRegistration = async () => {
     const res = await fetch(`${API_URL}/register/requester`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(formData)
     });
     

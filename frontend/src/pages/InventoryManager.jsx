@@ -9,7 +9,9 @@ const InventoryManager = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchInventory = () => {
-    fetch(`${API_URL}/api/admin/inventory`)
+    fetch(`${API_URL}/api/admin/inventory`, {
+    credentials: 'include'   // 🔥 MUST
+  })
       .then(res => res.json())
       .then(data => { setInventory(data); setLoading(false); });
   };
@@ -20,6 +22,7 @@ const InventoryManager = () => {
     const res = await fetch(`${API_URL}/api/admin/inventory/update`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ group, action })
     });
     if(res.ok) fetchInventory();

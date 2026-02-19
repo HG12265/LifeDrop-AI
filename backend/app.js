@@ -39,18 +39,20 @@ app.use(helmet({
 
 // Session configuration
 app.use(session({
-    secret: SECRET_KEY,
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: MONGO_URI,
-        collectionName: 'sessions'
-    }),
-    cookie: {
-        secure: false,
-        sameSite: 'none',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
+  name: "lifedrop.sid",
+  secret: SECRET_KEY,
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: MONGO_URI,
+    collectionName: "sessions"
+  }),
+  cookie: {
+    secure: true,        // 🔥 Render is HTTPS
+    httpOnly: true,
+    sameSite: "none",    // 🔥 Cross-site (Vercel → Render)
+    maxAge: 1000 * 60 * 60 * 24 // 1 day
+  }
 }));
 
 // Rate Limiting

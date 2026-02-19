@@ -12,7 +12,9 @@ const Home = () => {
 
   useEffect(() => {
     
-    fetch(`${API_URL}/api/admin/analytics`)
+    fetch(`${API_URL}/api/admin/analytics`, {
+    credentials: 'include'   // 🔥 MUST
+  })
       .then(res => res.json())
       .then(data => setStats({ donors: data.total_donors, saves: data.total_saves }))
       .catch(() => setStats({ donors: 25, saves: 12 })); 

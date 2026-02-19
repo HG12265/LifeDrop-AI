@@ -10,7 +10,9 @@ const BlockchainView = () => {
   const trackingUrl = window.location.href;
 
   useEffect(() => {
-    fetch(`${API_URL}/api/blockchain/view/${id}`)
+    fetch(`${API_URL}/api/blockchain/view/${id}`, {
+    credentials: 'include'   // 🔥 MUST
+  })
       .then(res => res.json())
       .then(data => setChain(data));
   }, [id]);

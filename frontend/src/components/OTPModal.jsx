@@ -18,6 +18,7 @@ const OTPModal = ({ email, onVerify, onClose, onResend }) => {
       const res = await fetch(`${API_URL}/api/check-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', 
         body: JSON.stringify({ 
           email: email, 
           otp: otp      

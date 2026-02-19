@@ -27,21 +27,27 @@ const DonorDashboard = ({ user }) => {
   const profileUrl = `${window.location.origin}/profile/${user.unique_id}`;
 
   const fetchAlerts = () => {
-    fetch(`${API_URL}/api/donor/targeted-alerts/${user.unique_id}`)
+    fetch(`${API_URL}/api/donor/targeted-alerts/${user.unique_id}`, {
+    credentials: 'include'   // 🔥 MUST
+  })
       .then(res => res.json())
       .then(data => setNotifications(data))
       .catch(err => console.error("Error alerts:", err));
   };
 
   const fetchStats = () => {
-    fetch(`${API_URL}/api/donor/profile-stats/${user.unique_id}`)
+    fetch(`${API_URL}/api/donor/profile-stats/${user.unique_id}`, {
+    credentials: 'include'   // 🔥 MUST
+  })
       .then(res => res.json())
       .then(data => setStats(data))
       .catch(err => console.error("Error stats:", err));
   };
 
   const fetchCamps = () => {
-    fetch(`${API_URL}/api/camps/all`)
+    fetch(`${API_URL}/api/camps/all`, {
+    credentials: 'include'   // 🔥 MUST
+  })
       .then(res => res.json())
       .then(data => setCamps(data))
       .catch(err => console.error("Error camps:", err));
@@ -67,7 +73,8 @@ const DonorDashboard = ({ user }) => {
     setIsToggling(true);
     try {
       const res = await fetch(`${API_URL}/api/donor/toggle-status/${user.unique_id}`, {
-        method: 'POST'
+        method: 'POST',
+        credentials: 'include'
       });
       const data = await res.json();
       if(res.ok) {
@@ -85,6 +92,7 @@ const DonorDashboard = ({ user }) => {
     const res = await fetch(`${API_URL}/api/notif/respond`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ notif_id: notifId, status: status })
     });
     if(res.ok) {
@@ -106,6 +114,7 @@ const DonorDashboard = ({ user }) => {
       const res = await fetch(`${API_URL}/api/notif/donate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ notif_id: selectedNotifId, bag_id: bagId })
       });
       if(res.ok) {

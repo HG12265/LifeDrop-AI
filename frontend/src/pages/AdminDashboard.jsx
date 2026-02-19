@@ -22,7 +22,9 @@ const AdminDashboard = () => {
 
   // 1. Fetch System Stats & Activity
   const fetchAdminData = () => {
-    fetch(`${API_URL}/api/admin/stats`)
+    fetch(`${API_URL}/api/admin/stats`, {
+    credentials: 'include'   // 🔥 MUST
+  })
       .then(res => res.json())
       .then(val => setData(val))
       .catch(err => console.error("Admin fetch error:", err));
@@ -30,7 +32,9 @@ const AdminDashboard = () => {
 
   // 2. Fetch All Sent Broadcasts
   const fetchBroadcasts = () => {
-    fetch(`${API_URL}/api/broadcasts`)
+    fetch(`${API_URL}/api/broadcasts`, {
+    credentials: 'include'   // 🔥 MUST
+  })
       .then(res => res.json())
       .then(data => setAllBroadcasts(data))
       .catch(err => console.error("Broadcast fetch error:", err));
@@ -52,6 +56,7 @@ const AdminDashboard = () => {
     const res = await fetch(`${API_URL}/api/admin/broadcast`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ message: broadcastMsg })
     });
     
@@ -72,7 +77,8 @@ const AdminDashboard = () => {
     setShowDeleteModal(false);
     try {
       const res = await fetch(`${API_URL}/api/broadcast/delete/${selectedBroadcastId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include'
       });
       if(res.ok) {
         toast.success("Broadcast removed from all users.");

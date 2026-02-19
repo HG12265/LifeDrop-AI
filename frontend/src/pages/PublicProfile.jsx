@@ -9,7 +9,9 @@ const PublicProfile = () => {
   const [donor, setDonor] = useState(null);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/donor/${id}`)
+    fetch(`${API_URL}/api/donor/${id}`, {
+    credentials: 'include'   // 🔥 MUST
+  })
       .then(res => res.json())
       .then(data => setDonor(data))
       .catch(err => console.error("Error:", err));

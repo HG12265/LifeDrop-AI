@@ -19,7 +19,9 @@ const RequesterDashboard = ({ user }) => {
 
   // 1. Data Fetching Logic
   const fetchHistory = () => {
-    fetch(`${API_URL}/api/requester/history/${user.unique_id}`)
+    fetch(`${API_URL}/api/requester/history/${user.unique_id}`, {
+    credentials: 'include'   // 🔥 MUST
+  })
       .then(res => res.json())
       .then(data => {
         setHistory(data);
@@ -49,6 +51,7 @@ const RequesterDashboard = ({ user }) => {
     try {
       const res = await fetch(`${API_URL}/api/request/complete/${selectedReqId}`, {
         method: 'POST',
+        credentials: 'include'
       });
       if (res.ok) {
         toast.success("Life Saved! Case Closed Successfully.");

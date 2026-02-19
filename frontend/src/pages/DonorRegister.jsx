@@ -47,6 +47,7 @@ const DonorRegister = () => {
       const res = await fetch(`${API_URL}/api/verify/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email: formData.email })
       });
       const data = await res.json();
@@ -76,6 +77,7 @@ const DonorRegister = () => {
       const res = await fetch(`${API_URL}/register/donor`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(finalData)
       });
       const data = await res.json();

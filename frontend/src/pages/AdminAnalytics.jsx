@@ -12,7 +12,9 @@ const AdminAnalytics = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/analytics`)
+    fetch(`${API_URL}/api/admin/analytics`, {
+    credentials: 'include'   // 🔥 MUST
+  })
       .then(res => res.json())
       .then(val => setData(val));
   }, []);
