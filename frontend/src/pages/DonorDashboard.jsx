@@ -62,11 +62,13 @@ const DonorDashboard = ({ user }) => {
 
       onMessageListener()
         .then((payload) => {
-          toast.error(payload.notification.title, {
-            description: payload.notification.body,
+    // App open-la irukkum pothu system notification-ah browser kaattaathu.
+    // So intha toast mattum thaan theriyaum.
+          toast.error("🚨 URGENT REQUEST", {
+            description: payload.notification?.body || payload.data?.body,
             duration: 10000,
-            icon: <Zap className="text-yellow-400 animate-pulse" />
           });
+        });
           
           // Trigger Phone Vibration
           if ('vibrate' in navigator) {

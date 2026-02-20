@@ -410,37 +410,38 @@ async function sendCooldownCompletionEmail(donorEmail, donorName) {
 }
 
 // ==================== PUSH NOTIFICATION HELPER FUNCTION ====================
+
 const sendPushNotification = async (token, patientName, bloodGroup, hospital) => {
     const message = {
         token: token,
-        // 1. Standard Notification (OS handle pannum)
-        notification: {
-            title: '🚨 URGENT BLOOD REQUEST',
-            body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`
-        },
-        // 2. Custom Data (App logic-ku)
+        // ✅ Root-la 'notification' irukka koodathu nanba
         data: {
             click_action: 'https://lifedrop-ai.vercel.app/donor-dashboard'
         },
         android: {
             priority: 'high',
+            collapseKey: 'emergency_alert', // Same key pottu overwrite panna
             notification: {
+                title: '🚨 URGENT BLOOD REQUEST',
+                body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`,
+                tag: 'emergency_alert', // Android-la double-ah vara thadukkum
                 sound: 'default',
-                tag: 'emergency_alert', // ✅ MUKKIYAM: Intha tag double-ah vara thadukkum
                 vibrateTimings: ['0s', '0.5s', '0.2s', '0.5s']
             }
         },
         webpush: {
             headers: {
-                Urgency: "high"
+                Urgency: "high",
+                Topic: "emergency_alert" // Web-la double-ah vara thadukkum
             },
             notification: {
+                title: '🚨 URGENT BLOOD REQUEST',
+                body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`,
                 icon: "/pwa-192x192.png",
                 badge: "/pwa-192x192.png",
-                tag: 'emergency_alert', // ✅ MUKKIYAM: Web-layum same tag
+                tag: 'emergency_alert', // ✅ MUKKIYAM: Intha tag iruntha orey oru notification thaan varum
                 renotify: true,
-                requireInteraction: true,
-                vibrate: [200, 100, 200, 100, 200, 100, 400]
+                requireInteraction: true
             }
         }
     };
@@ -452,6 +453,7 @@ const sendPushNotification = async (token, patientName, bloodGroup, hospital) =>
         console.error('❌ Push Notification Error:', error);
     }
 };
+
 // Initialize Inventory
 async function initInventory() {
     const groups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
