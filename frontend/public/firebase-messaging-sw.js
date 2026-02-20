@@ -10,30 +10,30 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Background message handler (Empty as we use 'notification' object from backend)
+// ✅ Background handler-la manual-ah showNotification panna koodathu
 messaging.onBackgroundMessage((payload) => {
   console.log('Received background message ', payload);
+  // Browser automatic-ah backend-la irunthu vara 'notification' object-ah kaattidum.
+  // Inga extra-va ethuvum ezhutha thevai illai.
 });
 
-// ✅ NOTIFICATION CLICK LOGIC
+// ✅ Notification click panna app open aaga intha logic mattum pothum
 self.addEventListener('notificationclick', (event) => {
-  // 1. Notification-ah close panniduvom
   event.notification.close();
-
-  // 2. Enga poganum-nu mudivu pannuvom (Default: Donor Dashboard)
-  const urlToOpen = new URL('/donor-dashboard', self.location.origin).href;
+  
+  // Backend-la namma anupura click_action URL-ku pogum
+  const urlToOpen = event.notification.data?.click_action || 'https://lifedrop-ai.vercel.app/donor-dashboard';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // 3. App already open-la irukka nu check pannuvom
-      for (let i = 0; i < windowClients.length; i++) {
-        let client = windowClients[i];
-        // Oru velai namma site already open-la irundha, adhaiye focus pannuvom
+      // App already open-la iruntha athaiye focus pannu
+      for (var i = 0; i < windowClients.length; i++) {
+        var client = windowClients[i];
         if (client.url === urlToOpen && 'focus' in client) {
           return client.focus();
         }
       }
-      // 4. App open-la illana, pudhu window-la open pannuvom
+      // Illana puthu window open pannu
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }
