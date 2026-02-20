@@ -56,26 +56,25 @@ const DonorDashboard = ({ user }) => {
     fetchStats();
     fetchCamps();
 
-    // --- FIREBASE REAL-TIME ALERTS ---
     if (user && user.role === 'donor') {
       requestForToken(user.unique_id); // Get FCM Token
 
       onMessageListener()
         .then((payload) => {
-    // App open-la irukkum pothu system notification-ah browser kaattaathu.
-    // So intha toast mattum thaan theriyaum.
+          // 1. Show Toast Alert
           toast.error("🚨 URGENT REQUEST", {
             description: payload.notification?.body || payload.data?.body,
             duration: 10000,
           });
-        });
-          
-          // Trigger Phone Vibration
+
+          // 2. Trigger Phone Vibration
           if ('vibrate' in navigator) {
             navigator.vibrate([500, 200, 500, 200, 500]);
           }
-          fetchAlerts(); // Refresh list immediately
-        })
+
+          // 3. Refresh list immediately
+          fetchAlerts(); 
+        }) // Correct-ah inga thaan .then mudiyanum
         .catch((err) => console.log('FCM failed: ', err));
     }
 
@@ -86,7 +85,7 @@ const DonorDashboard = ({ user }) => {
 
     return () => clearInterval(interval);
   }, [user.unique_id]);
-
+  
   // --- HANDLERS ---
 
   const handleToggleStatus = async () => {
