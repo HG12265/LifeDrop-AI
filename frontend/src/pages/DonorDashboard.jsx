@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { API_URL } from '../config'; 
 import { QRCodeCanvas } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom'; 
+import { requestForToken, onMessageListener } from '../firebase-config'; // 🔥 Firebase Integration
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
 import { 
   Bell, Phone, Droplet, User, CheckCircle, 
   XCircle, Package, ShieldCheck, Clock, Award, 
-  Tent, MapPin, Calendar, Link2, Activity
+  Tent, MapPin, Calendar, Link2, Activity, Zap
 } from 'lucide-react';
 
 import { generateCertificate } from '../utils/CertificateGenerator';
@@ -16,7 +17,7 @@ const DonorDashboard = ({ user }) => {
   const navigate = useNavigate(); 
   const [notifications, setNotifications] = useState([]);
   const [bagId, setBagId] = useState("");
-  const [stats, setStats] = useState({ donation_count: 0, is_available: true, days_remaining: 0 });
+  const [stats, setStats] = useState({ donation_count: 0, is_available: true, days_remaining: 0, is_resting: false });
   const [camps, setCamps] = useState([]); 
   const [isToggling, setIsToggling] = useState(false);
 
@@ -26,28 +27,25 @@ const DonorDashboard = ({ user }) => {
   
   const profileUrl = `${window.location.origin}/profile/${user.unique_id}`;
 
+  // 1. Fetching Alerts
   const fetchAlerts = () => {
-    fetch(`${API_URL}/api/donor/targeted-alerts/${user.unique_id}`, {
-    credentials: 'include'   // 🔥 MUST
-  })
+    fetch(`${API_URL}/api/donor/targeted-alerts/${user.unique_id}`)
       .then(res => res.json())
       .then(data => setNotifications(data))
       .catch(err => console.error("Error alerts:", err));
   };
 
+  // 2. Fetching Stats & Cooldown
   const fetchStats = () => {
-    fetch(`${API_URL}/api/donor/profile-stats/${user.unique_id}`, {
-    credentials: 'include'   // 🔥 MUST
-  })
+    fetch(`${API_URL}/api/donor/profile-stats/${user.unique_id}`)
       .then(res => res.json())
       .then(data => setStats(data))
       .catch(err => console.error("Error stats:", err));
   };
 
+  // 3. Fetching Camps
   const fetchCamps = () => {
-    fetch(`${API_URL}/api/camps/all`, {
-    credentials: 'include'   // 🔥 MUST
-  })
+    fetch(`${API_URL}/api/camps/all`)
       .then(res => res.json())
       .then(data => setCamps(data))
       .catch(err => console.error("Error camps:", err));
@@ -57,32 +55,54 @@ const DonorDashboard = ({ user }) => {
     fetchAlerts();
     fetchStats();
     fetchCamps();
+
+    // --- FIREBASE REAL-TIME ALERTS ---
+    if (user && user.role === 'donor') {
+      requestForToken(user.unique_id); // Get FCM Token
+
+      onMessageListener()
+        .then((payload) => {
+          // Emergency Toast with Sound/Vibration feel
+          toast.error(payload.notification.title, {
+            description: payload.notification.body,
+            duration: 10000,
+            icon: <Zap className="text-yellow-400 animate-pulse" />
+          });
+          
+          // Trigger Phone Vibration
+          if ('vibrate' in navigator) {
+            navigator.vibrate([500, 200, 500, 200, 500]);
+          }
+          fetchAlerts(); // Refresh list immediately
+        })
+        .catch((err) => console.log('FCM failed: ', err));
+    }
+
     const interval = setInterval(() => {
       fetchAlerts();
       fetchStats();
-    }, 10000); 
+    }, 15000); 
+
     return () => clearInterval(interval);
   }, [user.unique_id]);
 
+  // --- HANDLERS ---
+
   const handleToggleStatus = async () => {
     if (stats.days_remaining > 0) {
-        toast.info(`Medical Safety: You are in a mandatory rest period for ${stats.days_remaining} more days.`);
+        toast.warning(`Medical Rest: ${stats.days_remaining} days remaining.`);
         return;
     }
-
     setIsToggling(true);
     try {
-      const res = await fetch(`${API_URL}/api/donor/toggle-status/${user.unique_id}`, {
-        method: 'POST',
-        credentials: 'include'
-      });
+      const res = await fetch(`${API_URL}/api/donor/toggle-status/${user.unique_id}`, { method: 'POST' });
       const data = await res.json();
       if(res.ok) {
         setStats(prev => ({ ...prev, is_available: data.is_available }));
-        toast.success(data.is_available ? "Visibility: ONLINE" : "Visibility: OFFLINE");
+        toast.success(data.is_available ? "Status: ONLINE" : "Status: OFFLINE");
       }
     } catch (err) {
-      toast.error("Error updating status");
+      toast.error("Update failed");
     } finally {
       setIsToggling(false);
     }
@@ -92,7 +112,6 @@ const DonorDashboard = ({ user }) => {
     const res = await fetch(`${API_URL}/api/notif/respond`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify({ notif_id: notifId, status: status })
     });
     if(res.ok) {
@@ -101,9 +120,8 @@ const DonorDashboard = ({ user }) => {
     }
   };
 
-  // --- DONATION MODAL LOGIC ---
   const triggerDonateModal = (notifId) => {
-    if (!bagId.trim()) return toast.error("Please enter Blood Bag Serial Number!");
+    if (!bagId.trim()) return toast.error("Enter Blood Bag Serial Number!");
     setSelectedNotifId(notifId);
     setShowDonateModal(true);
   };
@@ -114,11 +132,10 @@ const DonorDashboard = ({ user }) => {
       const res = await fetch(`${API_URL}/api/notif/donate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ notif_id: selectedNotifId, bag_id: bagId })
       });
       if(res.ok) {
-        toast.success("Hero! Donation Confirmed. Cooldown Started.");
+        toast.success("Hero! Donation Recorded. 90-day rest started.");
         setBagId("");
         fetchAlerts();
         fetchStats();
@@ -131,18 +148,19 @@ const DonorDashboard = ({ user }) => {
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-10 pb-20 animate-in fade-in duration-700">
       
-      {/* CUSTOM DONATION CONFIRM MODAL */}
+      {/* 1. CONFIRMATION MODAL */}
       <ConfirmModal 
         isOpen={showDonateModal}
         title="Confirm Donation"
-        message={`Are you sure you want to record this donation with Bag ID: ${bagId}? This will start your 90-day medical rest period.`}
-        confirmText="YES, CONFIRM DONATION"
+        message={`Verify Bag ID: ${bagId}. This action will start your mandatory 90-day medical recovery period.`}
+        confirmText="CONFIRM & DISPATCH"
         onConfirm={finalizeDonation}
         onCancel={() => setShowDonateModal(false)}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* --- LEFT SIDE: PROFILE & STATS --- */}
+        
+        {/* --- LEFT COLUMN: PROFILE & COOLDOWN --- */}
         <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-xl text-center relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div>
@@ -154,13 +172,13 @@ const DonorDashboard = ({ user }) => {
                 
                 <div className="mt-8 flex flex-col items-center bg-gray-50 p-6 rounded-[32px] border-2 border-dashed border-gray-200">
                     <QRCodeCanvas value={profileUrl} size={140} level={"H"} />
-                    <p className="text-[10px] font-black text-gray-400 mt-4 uppercase tracking-widest leading-none">Hero Digital Card</p>
+                    <p className="text-[10px] font-black text-gray-400 mt-4 uppercase tracking-widest">Hero Digital ID</p>
                 </div>
                 
                 <div className="mt-8 grid grid-cols-2 gap-4">
                     <div className="bg-red-50 p-4 rounded-3xl border border-red-100 flex flex-col items-center justify-center">
                         <Award className="text-red-600 mb-1" size={18} />
-                        <p className="text-[10px] font-black text-gray-400 uppercase leading-none text-center">Donations</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase leading-none">Donations</p>
                         <p className="text-3xl font-black text-red-600 mt-1">{stats.donation_count}</p>
                     </div>
 
@@ -168,24 +186,24 @@ const DonorDashboard = ({ user }) => {
                         onClick={handleToggleStatus}
                         disabled={isToggling || stats.days_remaining > 0}
                         className={`p-4 rounded-3xl border flex flex-col items-center justify-center transition-all duration-500 transform active:scale-95 shadow-sm ${
-                            stats.is_available 
+                            stats.is_available && stats.days_remaining === 0
                             ? 'bg-green-50 border-green-200 hover:bg-green-100' 
                             : 'bg-slate-100 border-slate-200 opacity-80'
                         }`}
                     >
-                        <div className={`w-3 h-3 rounded-full mb-1 ${stats.is_available ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`}></div>
+                        <div className={`w-3 h-3 rounded-full mb-1 ${stats.is_available && stats.days_remaining === 0 ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`}></div>
                         <p className="text-[10px] font-black text-gray-400 uppercase leading-none">Visibility</p>
-                        <p className={`text-sm font-black uppercase mt-1 ${stats.is_available ? 'text-green-600' : 'text-slate-500'}`}>
+                        <p className={`text-sm font-black uppercase mt-1 ${stats.is_available && stats.days_remaining === 0 ? 'text-green-600' : 'text-slate-500'}`}>
                             {stats.days_remaining > 0 ? 'Resting' : (stats.is_available ? 'Online' : 'Offline')}
                         </p>
                     </button>
                 </div>
 
-                {/* --- COOLDOWN INDICATOR --- */}
+                {/* --- COOLDOWN PROGRESS INDICATOR --- */}
                 {stats.days_remaining > 0 && (
                     <div className="mt-6 bg-slate-900 text-white p-6 rounded-[32px] text-left relative overflow-hidden shadow-2xl animate-in zoom-in">
                         <Clock className="absolute right-[-10px] bottom-[-10px] opacity-10" size={80} />
-                        <p className="text-[10px] font-black opacity-50 uppercase tracking-widest leading-none mb-1">Rest Period Active</p>
+                        <p className="text-[10px] font-black opacity-50 uppercase tracking-widest leading-none mb-1">Medical Recovery</p>
                         <h4 className="text-3xl font-black mt-1 text-red-500">{stats.days_remaining} Days Left</h4>
                         <div className="mt-4 w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
                             <div 
@@ -193,13 +211,13 @@ const DonorDashboard = ({ user }) => {
                                 style={{ width: `${((90 - stats.days_remaining) / 90) * 100}%` }}
                             ></div>
                         </div>
-                        <p className="text-[8px] mt-3 opacity-40 font-bold italic">* You will be automatically visible after this period.</p>
+                        <p className="text-[8px] mt-3 opacity-40 font-bold italic">* Automatic activation after rest period.</p>
                     </div>
                 )}
             </div>
         </div>
 
-        {/* --- RIGHT SIDE: ALERTS & TRACKING --- */}
+        {/* --- RIGHT COLUMN: ALERTS & ACTIONS --- */}
         <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between px-2">
                 <div className="flex items-center gap-3">
@@ -207,7 +225,7 @@ const DonorDashboard = ({ user }) => {
                     <h3 className="text-2xl font-black text-gray-800 tracking-tight italic uppercase">Urgent Help Alerts</h3>
                 </div>
                 <span className="bg-slate-800 text-white text-[10px] px-3 py-1 rounded-full font-black">
-                    {notifications.length} ASSIGNED
+                    {notifications.length} ACTIVE
                 </span>
             </div>
 
@@ -229,6 +247,7 @@ const DonorDashboard = ({ user }) => {
                         </div>
                     </div>
 
+                    {/* STATUS: PENDING */}
                     {note.status === 'Pending' && (
                     <div className="flex flex-col sm:flex-row gap-4 mt-8">
                         <button onClick={() => handleRespond(note.notif_id, 'Accepted')} className="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2 shadow-xl shadow-green-100 hover:bg-green-700 transition transform active:scale-95">
@@ -240,6 +259,7 @@ const DonorDashboard = ({ user }) => {
                     </div>
                     )}
 
+                    {/* STATUS: ACCEPTED */}
                     {note.status === 'Accepted' && (
                     <div className="space-y-6 mt-6 animate-in slide-in-from-bottom duration-500">
                         <div className="flex flex-col sm:flex-row gap-4">
@@ -248,7 +268,7 @@ const DonorDashboard = ({ user }) => {
                             </a>
                             <button 
                                 onClick={() => navigate(`/blockchain/${note.request_id}`)}
-                                className="flex-1 bg-white border-2 border-slate-100 text-slate-400 py-4 rounded-2xl font-black text-[10px] flex items-center justify-center gap-2 hover:border-red-200 hover:text-red-600 transition"
+                                className="flex-1 bg-white border-2 border-slate-100 text-slate-400 py-4 rounded-2xl font-black text-[10px] flex items-center justify-center gap-2 hover:border-red-200 hover:text-red-500 transition"
                             >
                                 <Link2 size={16} /> VIEW LIVE LEDGER
                             </button>
@@ -268,6 +288,7 @@ const DonorDashboard = ({ user }) => {
                     </div>
                     )}
 
+                    {/* STATUS: DONATED */}
                     {note.status === 'Donated' && (
                         <div className="mt-6 space-y-4">
                             <div className="bg-blue-600 p-6 rounded-[32px] text-white flex items-center justify-center gap-4 shadow-xl animate-in zoom-in">
@@ -277,15 +298,13 @@ const DonorDashboard = ({ user }) => {
                                     <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-1">Safe delivery in progress.</p>
                                 </div>
                             </div>
-                            <button 
-                                onClick={() => navigate(`/blockchain/${note.request_id}`)}
-                                className="w-full border-2 border-dashed border-blue-100 text-blue-600 py-4 rounded-[32px] font-black text-xs flex items-center justify-center gap-2 hover:bg-blue-50 transition"
-                            >
+                            <button onClick={() => navigate(`/blockchain/${note.request_id}`)} className="w-full border-2 border-dashed border-blue-100 text-blue-600 py-4 rounded-[32px] font-black text-xs flex items-center justify-center gap-2 hover:bg-blue-50 transition">
                                 <ShieldCheck size={18} /> VERIFY BLOCKCHAIN RECORD
                             </button>
                         </div>
                     )}
 
+                    {/* STATUS: COMPLETED */}
                     {note.status === 'Completed' && (
                       <div className="mt-6 space-y-3">
                         <div className="bg-green-600 p-6 rounded-[32px] text-white flex items-center justify-center gap-4 shadow-xl">
@@ -302,12 +321,9 @@ const DonorDashboard = ({ user }) => {
                           <Award size={24} className="animate-pulse" />
                           DOWNLOAD HERO CERTIFICATE
                         </button>
-                        <button 
-                                onClick={() => navigate(`/blockchain/${note.request_id}`)}
-                                className="w-full border-2 border-dashed border-green-100 text-green-600 py-4 rounded-[32px] font-black text-xs flex items-center justify-center gap-2 hover:bg-green-50 transition"
-                            >
-                                <ShieldCheck size={18} /> VIEW FINAL LEDGER
-                            </button>
+                        <button onClick={() => navigate(`/blockchain/${note.request_id}`)} className="w-full border-2 border-dashed border-green-100 text-green-600 py-4 rounded-[32px] font-black text-xs flex items-center justify-center gap-2 hover:bg-green-50 transition">
+                            <ShieldCheck size={18} /> VIEW FINAL LEDGER
+                        </button>
                       </div>
                     )}
                 </div>

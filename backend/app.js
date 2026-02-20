@@ -12,6 +12,15 @@ const https = require('https');
 const { ObjectId } = mongoose.Types;
 require('dotenv').config();
 
+// ==================== FIREBASE ADMIN INITIALIZATION ====================
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin using Environment Variable
+const firebaseConfig = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+admin.initializeApp({
+  credential: admin.credential.cert(firebaseConfig)
+});
+
 const app = express();
 
 // ==================== CONFIGURATION ====================
@@ -109,6 +118,7 @@ const donorSchema = new mongoose.Schema({
     donation_count: { type: Number, default: 0 },
     cooldown_email_sent: { type: Boolean, default: false },
     is_available: { type: Boolean, default: true },
+    fcm_token: { type: String, default: null }, // Token store panna
     created_at: { type: Date, default: Date.now }
 });
 
@@ -127,7 +137,7 @@ const bloodRequestSchema = new mongoose.Schema({
     contact_number: { type: String, required: true },
     blood_group: { type: String, required: true },
     units: { type: Number, required: true },
-    urgency: { type: String, required: true },
+    urgency: { type: Number, required: true },
     hospital: { type: String, required: true },
     lat: { type: Number, required: true },
     lng: { type: Number, required: true },
@@ -399,6 +409,33 @@ async function sendCooldownCompletionEmail(donorEmail, donorName) {
     }
 }
 
+// ==================== PUSH NOTIFICATION HELPER FUNCTION ====================
+const sendPushNotification = async (token, patientName, bloodGroup, hospital) => {
+    const message = {
+        notification: {
+            title: '🚨 URGENT BLOOD REQUEST',
+            body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}. Open LifeDrop now!`
+        },
+        // Android specific settings for "Alarm" feel
+        android: {
+            priority: 'high',
+            notification: {
+                sound: 'default',
+                clickAction: 'FLUTTER_NOTIFICATION_CLICK', // Standard for opening app
+                vibrateTimings: [0, 500, 200, 500], // Long vibration pattern
+            }
+        },
+        token: token
+    };
+
+    try {
+        const response = await admin.messaging().send(message);
+        console.log('✅ Push Notification Sent:', response);
+    } catch (error) {
+        console.error('❌ Push Notification Error:', error);
+    }
+};
+
 // Initialize Inventory
 async function initInventory() {
     const groups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
@@ -481,23 +518,29 @@ app.get('/', (req, res) => {
 });
 
 // Register Donor
+// ==================== REGISTER DONOR (CORRECTED) ====================
 app.post('/register/donor', async (req, res) => {
     try {
         const data = req.body;
         
-        const existingDonor = await Donor.findOne({ email: data.email });
-        const existingRequester = await Requester.findOne({ email: data.email });
-        
-        if (existingDonor || existingRequester) {
-            return res.status(400).json({
-                message: "This email is already registered, you may login or use different email"
-            });
+        // 1. Check if email already exists
+        const existingUser = await Donor.findOne({ email: data.email }) || await Requester.findOne({ email: data.email });
+        if (existingUser) {
+            return res.status(400).json({ message: "This email is already registered, you may login or use different email" });
+        }
+
+        // 2. ✅ MUKKIYAM: OTP check-ah user create pandrathuku MUNNADIYE pannanum
+        const otpRecord = await OTPVerification.findOne({ email: data.email });
+        if (!otpRecord) {
+            return res.status(400).json({ message: "Email not verified. Please verify OTP first." });
         }
         
+        // 3. Generate ID and Hash Password
         const uId = await generateUniqueId(Donor);
         const hashedPw = await bcrypt.hash(data.password, 10);
         
-        const newDonor = await Donor.create({
+        // 4. Create User (Ippo thaan save pannanum)
+        await Donor.create({
             unique_id: uId,
             full_name: data.fullName,
             phone: data.phone,
@@ -512,39 +555,43 @@ app.post('/register/donor', async (req, res) => {
             donation_count: 0,
             cooldown_email_sent: false,
             is_available: true,
+            fcm_token: null,
             created_at: new Date()
         });
-        
+
+        // 5. Cleanup OTP
         await OTPVerification.deleteMany({ email: data.email });
         
-        res.status(201).json({
-            message: "Donor Registered Successfully",
-            unique_id: uId
-        });
+        res.status(201).json({ message: "Donor Registered Successfully", unique_id: uId });
     } catch (error) {
         console.error('Donor Registration Error:', error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 });
 
-// Register Requester
+// ==================== REGISTER REQUESTER (CORRECTED) ====================
 app.post('/register/requester', async (req, res) => {
     try {
         const data = req.body;
         
-        const existingRequester = await Requester.findOne({ email: data.email });
-        const existingDonor = await Donor.findOne({ email: data.email });
-        
-        if (existingRequester || existingDonor) {
-            return res.status(400).json({
-                message: "This email is already registered, you may login or use different email"
-            });
+        // 1. Check if email already exists
+        const existingUser = await Requester.findOne({ email: data.email }) || await Donor.findOne({ email: data.email });
+        if (existingUser) {
+            return res.status(400).json({ message: "This email is already registered, you may login or use different email" });
+        }
+
+        // 2. ✅ MUKKIYAM: OTP check-ah user create pandrathuku MUNNADIYE pannanum
+        const otpRecord = await OTPVerification.findOne({ email: data.email });
+        if (!otpRecord) {
+            return res.status(400).json({ message: "Email not verified. Please verify OTP first." });
         }
         
+        // 3. Generate ID and Hash Password
         const uId = await generateUniqueId(Requester);
         const hashedPw = await bcrypt.hash(data.password, 10);
         
-        const newRequester = await Requester.create({
+        // 4. Create User
+        await Requester.create({
             unique_id: uId,
             full_name: data.fullName,
             phone: data.phone,
@@ -552,16 +599,27 @@ app.post('/register/requester', async (req, res) => {
             password: hashedPw,
             created_at: new Date()
         });
-        
+
+        // 5. Cleanup OTP
         await OTPVerification.deleteMany({ email: data.email });
         
-        res.status(201).json({
-            message: "Success",
-            unique_id: uId
-        });
+        res.status(201).json({ message: "Success", unique_id: uId });
     } catch (error) {
         console.error('Requester Registration Error:', error);
         res.status(500).json({ message: "Internal Server Error" });
+    }
+});
+
+// ==================== NEW: SAVE FCM TOKEN API ====================
+// API to Save FCM Token (Donor login/dashboard appo call aagum)
+app.post('/api/save-fcm-token', async (req, res) => {
+    try {
+        const { unique_id, fcm_token } = req.body;
+        // MongoDB-la donor profile-la token-ah save panroam
+        await Donor.updateOne({ unique_id }, { $set: { fcm_token: fcm_token } });
+        res.json({ success: true, message: "Token updated" });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -627,7 +685,7 @@ app.post('/api/check-otp', async (req, res) => {
         
         if (record) {
             // OTP correct - delete it so it can't be reused
-            await OTPVerification.deleteOne({ _id: record._id });
+            
             console.log(`✅ OTP verified successfully for ${email}`);
             res.json({ success: true });
         } else {
@@ -689,6 +747,8 @@ app.post('/login', loginLimiter, async (req, res) => {
             
             if (role === 'donor') {
                 responseData.user.bloodGroup = user.blood_group;
+                // Also return fcm_token if needed
+                responseData.user.fcm_token = user.fcm_token;
             }
             
             res.json(responseData);
@@ -796,7 +856,8 @@ app.get('/api/donor/:u_id', async (req, res) => {
                 dob: donor.dob,
                 email: donor.email,
                 status: "Verified",
-                location: { lat: donor.lat, lng: donor.lng }
+                location: { lat: donor.lat, lng: donor.lng },
+                fcm_token: donor.fcm_token // Include FCM token in response
             });
         } else {
             res.status(404).json({ message: "Not Found" });
@@ -950,7 +1011,8 @@ app.get('/api/match-donors/:request_id', async (req, res) => {
                 blood: d.blood_group,
                 lat: d.lat,
                 lng: d.lng,
-                isExact: isExact
+                isExact: isExact,
+                fcm_token: d.fcm_token // Include token for push notifications
             });
         }
         
@@ -970,7 +1032,7 @@ app.get('/api/match-donors/:request_id', async (req, res) => {
     }
 });
 
-// Send Notification to Donor
+// ==================== UPDATED: Send Notification to Donor with Push Notification ====================
 app.post('/api/send-request', async (req, res) => {
     try {
         const data = req.body;
@@ -1004,7 +1066,18 @@ app.post('/api/send-request', async (req, res) => {
             // Send email asynchronously
             sendRequestAlertEmail(donor.email, donor.full_name, reqDetails);
             
-            res.status(201).json({ message: "Request sent successfully!" });
+            // --- ADD PUSH NOTIFICATION TRIGGER ---
+            if (donor && donor.fcm_token && bloodReq) {
+                // Trigger the push notification
+                sendPushNotification(
+                    donor.fcm_token, 
+                    bloodReq.patient_name, 
+                    bloodReq.blood_group, 
+                    bloodReq.hospital
+                );
+            }
+            
+            res.status(201).json({ message: "Request sent successfully via Email & Push!" });
         } else {
             res.json({ message: "Request already sent to this donor" });
         }
@@ -1041,7 +1114,8 @@ app.get('/api/donor/profile-stats/:u_id', async (req, res) => {
             donation_count: donor.donation_count || 0,
             is_available: donor.is_available,
             days_remaining: daysRemaining,
-            is_resting: isResting
+            is_resting: isResting,
+            fcm_token: donor.fcm_token // Include FCM token
         });
     } catch (error) {
         console.error('Donor Stats Error:', error);
@@ -1293,7 +1367,8 @@ app.get('/api/admin/all-users', async (req, res) => {
                 name: d.full_name,
                 email: d.email,
                 role: "Donor",
-                phone: d.phone
+                phone: d.phone,
+                fcm_token: d.fcm_token ? "Present" : "Not Set" // Show token status
             });
         }
         
@@ -1332,7 +1407,8 @@ app.get('/api/admin/donors-detailed', async (req, res) => {
                 health: d.health_score,
                 phone: d.phone,
                 location: `${d.lat.toFixed(2)}, ${d.lng.toFixed(2)}`,
-                status: isActive ? "Active" : "Inactive"
+                status: isActive ? "Active" : "Inactive",
+                push_enabled: d.fcm_token ? "Yes" : "No" // Show push notification status
             };
         });
         
