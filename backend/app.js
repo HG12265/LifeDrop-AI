@@ -412,25 +412,41 @@ async function sendCooldownCompletionEmail(donorEmail, donorName) {
 // ==================== PUSH NOTIFICATION HELPER FUNCTION ====================
 const sendPushNotification = async (token, patientName, bloodGroup, hospital) => {
     const message = {
+        token: token,
         notification: {
             title: '🚨 URGENT BLOOD REQUEST',
-            body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}. Open LifeDrop now!`
+            body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`
         },
-        // Android specific settings for "Alarm" feel
+        // Android specific settings
         android: {
             priority: 'high',
             notification: {
                 sound: 'default',
-                clickAction: 'FLUTTER_NOTIFICATION_CLICK', // Standard for opening app
-                vibrateTimings: [0, 500, 200, 500], // Long vibration pattern
+                // ✅ FIX: Duration strings use pannanum (e.g., "0.5s")
+                vibrateTimings: ['0s', '0.5s', '0.2s', '0.5s'], 
             }
         },
-        token: token
+        // Web Push (PWA) settings
+        webpush: {
+            headers: {
+                Urgency: "high"
+            },
+            notification: {
+                body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`,
+                icon: "/pwa-192x192.png",
+                badge: "/pwa-192x192.png",
+                tag: "emergency-request",
+                renotify: true,
+                requireInteraction: true,
+                // Web-ku milliseconds numbers okay thaan
+                vibrate: [200, 100, 200, 100, 200, 100, 400]
+            }
+        }
     };
 
     try {
         const response = await admin.messaging().send(message);
-        console.log('✅ Push Notification Sent:', response);
+        console.log('✅ Push Notification Sent Successfully:', response);
     } catch (error) {
         console.error('❌ Push Notification Error:', error);
     }
