@@ -426,7 +426,7 @@ const sendPushNotification = async (token, patientName, bloodGroup, hospital) =>
                 body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`,
                 tag: 'emergency_alert', // Android-la double-ah vara thadukkum
                 sound: 'default',
-                vibrateTimings: ['0s', '0.5s', '0.2s', '0.5s']
+                vibrateTimings: ['0s', '1s', '0.5s', '1s', '0.5s', '1s', '0.5s', '0.5s']
             }
         },
         webpush: {
@@ -441,7 +441,8 @@ const sendPushNotification = async (token, patientName, bloodGroup, hospital) =>
                 badge: "/pwa-192x192.png",
                 tag: 'emergency_alert', // ✅ MUKKIYAM: Intha tag iruntha orey oru notification thaan varum
                 renotify: true,
-                requireInteraction: true
+                requireInteraction: true,
+                vibrate: [1000, 500, 1000, 500, 1000, 500, 500]
             }
         }
     };
