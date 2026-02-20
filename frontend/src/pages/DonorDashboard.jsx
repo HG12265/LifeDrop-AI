@@ -62,7 +62,6 @@ const DonorDashboard = ({ user }) => {
 
       onMessageListener()
         .then((payload) => {
-          // Emergency Toast with Sound/Vibration feel
           toast.error(payload.notification.title, {
             description: payload.notification.body,
             duration: 10000,

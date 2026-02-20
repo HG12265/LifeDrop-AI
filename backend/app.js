@@ -413,34 +413,24 @@ async function sendCooldownCompletionEmail(donorEmail, donorName) {
 const sendPushNotification = async (token, patientName, bloodGroup, hospital) => {
     const message = {
         token: token,
-        notification: {
+        // ✅ MUKKIYAM: Ellathaiyum 'data' kulla anupuroam
+        data: {
             title: '🚨 URGENT BLOOD REQUEST',
-            body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`
+            body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`,
+            patient: patientName,
+            blood: bloodGroup,
+            hospital: hospital,
+            click_action: 'https://lifedrop-ai.vercel.app/donor-dashboard'
         },
-        // Android specific settings
         android: {
             priority: 'high',
-            notification: {
-                sound: 'default',
-                // ✅ FIX: Duration strings use pannanum (e.g., "0.5s")
-                vibrateTimings: ['0s', '0.5s', '0.2s', '0.5s'], 
-            }
+            // Inga 'notification' block thevai illai
         },
-        // Web Push (PWA) settings
         webpush: {
             headers: {
                 Urgency: "high"
-            },
-            notification: {
-                body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`,
-                icon: "/pwa-192x192.png",
-                badge: "/pwa-192x192.png",
-                tag: "emergency-request",
-                renotify: true,
-                requireInteraction: true,
-                // Web-ku milliseconds numbers okay thaan
-                vibrate: [200, 100, 200, 100, 200, 100, 400]
             }
+            // Inga 'notification' block-ah thookitom, so double notification varaathu
         }
     };
 
@@ -451,7 +441,6 @@ const sendPushNotification = async (token, patientName, bloodGroup, hospital) =>
         console.error('❌ Push Notification Error:', error);
     }
 };
-
 // Initialize Inventory
 async function initInventory() {
     const groups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
