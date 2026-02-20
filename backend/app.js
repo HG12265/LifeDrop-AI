@@ -413,30 +413,41 @@ async function sendCooldownCompletionEmail(donorEmail, donorName) {
 const sendPushNotification = async (token, patientName, bloodGroup, hospital) => {
     const message = {
         token: token,
-        // ✅ MUKKIYAM: Ellathaiyum 'data' kulla anupuroam
-        data: {
+        // 1. Standard Notification (OS handle pannum)
+        notification: {
             title: '🚨 URGENT BLOOD REQUEST',
-            body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`,
-            patient: patientName,
-            blood: bloodGroup,
-            hospital: hospital,
+            body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`
+        },
+        // 2. Custom Data (App logic-ku)
+        data: {
             click_action: 'https://lifedrop-ai.vercel.app/donor-dashboard'
         },
         android: {
             priority: 'high',
-            // Inga 'notification' block thevai illai
+            notification: {
+                sound: 'default',
+                tag: 'emergency_alert', // ✅ MUKKIYAM: Intha tag double-ah vara thadukkum
+                vibrateTimings: ['0s', '0.5s', '0.2s', '0.5s']
+            }
         },
         webpush: {
             headers: {
                 Urgency: "high"
+            },
+            notification: {
+                icon: "/pwa-192x192.png",
+                badge: "/pwa-192x192.png",
+                tag: 'emergency_alert', // ✅ MUKKIYAM: Web-layum same tag
+                renotify: true,
+                requireInteraction: true,
+                vibrate: [200, 100, 200, 100, 200, 100, 400]
             }
-            // Inga 'notification' block-ah thookitom, so double notification varaathu
         }
     };
 
     try {
-        const response = await admin.messaging().send(message);
-        console.log('✅ Push Notification Sent Successfully:', response);
+        await admin.messaging().send(message);
+        console.log('✅ Push Notification Sent Successfully');
     } catch (error) {
         console.error('❌ Push Notification Error:', error);
     }

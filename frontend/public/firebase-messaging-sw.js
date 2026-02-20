@@ -10,31 +10,33 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Background notification handler
+// ✅ Background handler-la manual-ah showNotification panna koodathu
 messaging.onBackgroundMessage((payload) => {
   console.log('Received background message ', payload);
-
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/pwa-192x192.png', // Unga app logo path
-    badge: '/pwa-192x192.png',
-    // EMERGENCY VIBRATION PATTERN
-    vibrate: [200, 100, 200, 100, 200, 100, 400], 
-    tag: 'emergency-alert',
-    renotify: true,
-    data: {
-      url: '/donor-dashboard' // Click panna dashboard-ku poga
-    }
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  // Browser automatic-ah backend-la irunthu vara 'notification' object-ah kaattidum.
+  // Inga extra-va ethuvum ezhutha thevai illai.
 });
 
-// Notification click panna app open aaga
+// ✅ Notification click panna app open aaga intha logic mattum pothum
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  
+  // Backend-la namma anupura click_action URL-ku pogum
+  const urlToOpen = event.notification.data?.click_action || 'https://lifedrop-ai.vercel.app/donor-dashboard';
+
   event.waitUntil(
-    clients.openWindow('https://lifedrop-ai.vercel.app/donor-dashboard')
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // App already open-la iruntha athaiye focus pannu
+      for (var i = 0; i < windowClients.length; i++) {
+        var client = windowClients[i];
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Illana puthu window open pannu
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
   );
 });
