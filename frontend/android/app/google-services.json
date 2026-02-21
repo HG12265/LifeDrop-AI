@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "244763619386",
+    "project_id": "lifedrop-alerts",
+    "storage_bucket": "lifedrop-alerts.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:244763619386:android:ae39f7278966dc48010503",
+        "android_client_info": {
+          "package_name": "com.lifedrop.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6I2UnbckpKJ-XRM9Jc6Ug-pzTmno7ol4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

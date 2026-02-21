@@ -1,14 +1,19 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa' 
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   plugins: [
     react(),
-  
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      // --- WORKBOX CONFIG UPDATE ---
+      workbox: {
+        // 5MB varaikkum files-ah cache panna allow panroam
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, 
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+      },
       manifest: {
         name: 'LifeDrop: AI Blood Donation',
         short_name: 'LifeDrop',
@@ -25,12 +30,12 @@ export default defineConfig({
         ]
       }
     })
-    
-  ], 
+  ],
   build: {
-    minify: false,
+    // ✅ RE-ENABLED MINIFY: Vercel/GitHub-la build panna ithu thaan best
+    minify: 'esbuild', 
     sourcemap: false,
-    chunkSizeWarningLimit: 5000,
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
         manualChunks: undefined,
