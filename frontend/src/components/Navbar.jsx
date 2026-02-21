@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Droplet, LogOut, LayoutDashboard, UserCircle, Bell, Megaphone } from 'lucide-react';
+import { Menu, X, Droplet, LogOut, LayoutDashboard, UserCircle, Bell, Megaphone, Download, Smartphone } from 'lucide-react';
 import { API_URL } from '../config';
 
 const Navbar = ({ user, handleLogout }) => {
@@ -9,10 +9,12 @@ const Navbar = ({ user, handleLogout }) => {
   const [showNotifs, setShowNotifs] = useState(false);
   const [alerts, setAlerts] = useState([]);
   
+  // --- PWA INSTALL STATE ---
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
   const navigate = useNavigate();
   const location = useLocation();
 
-  // User-oda first name mattum edukka
   const firstName = user?.name ? user.name.split(' ')[0] : "";
 
   const fetchAlerts = () => {
@@ -28,12 +30,31 @@ const Navbar = ({ user, handleLogout }) => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     fetchAlerts();
+
+    // --- PWA INSTALL LOGIC ---
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     const interval = setInterval(fetchAlerts, 30000);
+    
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       clearInterval(interval);
     };
   }, [user]);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const onLogout = () => {
     handleLogout();
@@ -69,7 +90,18 @@ const Navbar = ({ user, handleLogout }) => {
         </Link>
 
         {/* DESKTOP MENU */}
-        <div className="hidden md:flex items-center gap-5"> {/* Reduced overall gap */}
+        <div className="hidden md:flex items-center gap-5">
+          
+          {/* ✅ DESKTOP INSTALL BUTTON */}
+          {deferredPrompt && (
+            <button 
+              onClick={handleInstallClick}
+              className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all border border-blue-100 mr-2 animate-pulse"
+            >
+              <Download size={14} /> Get App
+            </button>
+          )}
+
           <div className="flex items-center gap-6 border-r pr-6 border-gray-100 h-10">
             <Link to="/" className={`text-sm font-black uppercase tracking-widest transition-colors ${
               isActive('/') ? 'text-red-600' : 'text-slate-400 hover:text-slate-900'
@@ -105,7 +137,6 @@ const Navbar = ({ user, handleLogout }) => {
                 Dashboard
               </Link>
               
-              {/* USER INFO WITH FIRST NAME */}
               <div className="flex items-center gap-2 bg-slate-50 p-1 pr-3 rounded-2xl border border-gray-100">
                 <div className="bg-white w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 shadow-sm">
                    <UserCircle size={20} />
@@ -125,6 +156,14 @@ const Navbar = ({ user, handleLogout }) => {
 
         {/* MOBILE TOGGLE SECTION */}
         <div className="md:hidden flex items-center gap-3">
+           
+           {/* ✅ MOBILE INSTALL ICON */}
+           {deferredPrompt && (
+             <button onClick={handleInstallClick} className="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shadow-sm">
+                <Download size={20} />
+             </button>
+           )}
+
            {user && (
              <button 
                 onClick={() => setShowNotifs(!showNotifs)} 
@@ -143,7 +182,7 @@ const Navbar = ({ user, handleLogout }) => {
            </button>
         </div>
 
-        {/* --- CENTERED NOTIFICATION DROPDOWN --- */}
+        {/* NOTIFICATION DROPDOWN */}
         {showNotifs && (
           <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-[90vw] md:w-96 bg-white rounded-[32px] shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in duration-300 z-[1100]">
             <div className="bg-slate-900 p-5 text-white flex justify-between items-center">
@@ -181,6 +220,14 @@ const Navbar = ({ user, handleLogout }) => {
           <div className="flex flex-col gap-4">
              <Link to="/" onClick={()=>setIsOpen(false)} className="text-4xl font-black text-slate-900 border-b pb-6 border-slate-50">Home</Link>
              <Link to="/contact" onClick={()=>setIsOpen(false)} className="text-4xl font-black text-slate-900 border-b pb-6 border-slate-50">Contact</Link>
+             
+             {/* ✅ MOBILE MENU INSTALL OPTION */}
+             {deferredPrompt && (
+               <button onClick={() => { handleInstallClick(); setIsOpen(false); }} className="text-4xl font-black text-blue-600 border-b pb-6 border-slate-50 flex items-center justify-between">
+                  Install App <Smartphone size={30}/>
+               </button>
+             )}
+
              {user ? (
                <>
                  <Link to={getDashboardPath()} onClick={()=>setIsOpen(false)} className="text-4xl font-black text-red-600 border-b pb-6 border-slate-50 flex items-center justify-between">
