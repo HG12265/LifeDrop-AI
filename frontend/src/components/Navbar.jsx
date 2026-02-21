@@ -9,7 +9,7 @@ const Navbar = ({ user, handleLogout }) => {
   const [showNotifs, setShowNotifs] = useState(false);
   const [alerts, setAlerts] = useState([]);
   
-  // --- PWA INSTALL STATE ---
+  // PWA INSTALL STATE
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ const Navbar = ({ user, handleLogout }) => {
     window.addEventListener('scroll', handleScroll);
     fetchAlerts();
 
-    // --- PWA INSTALL LOGIC ---
+    // PWA INSTALL LOGIC
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -92,7 +92,7 @@ const Navbar = ({ user, handleLogout }) => {
         {/* DESKTOP MENU */}
         <div className="hidden md:flex items-center gap-5">
           
-          {/* ✅ DESKTOP INSTALL BUTTON */}
+          {/* ✅ DESKTOP INSTALL BUTTON (Maintained) */}
           {deferredPrompt && (
             <button 
               onClick={handleInstallClick}
@@ -156,14 +156,8 @@ const Navbar = ({ user, handleLogout }) => {
 
         {/* MOBILE TOGGLE SECTION */}
         <div className="md:hidden flex items-center gap-3">
+           {/* ✅ MOBILE DOWNLOAD ICON REMOVED FROM HERE */}
            
-           {/* ✅ MOBILE INSTALL ICON */}
-           {deferredPrompt && (
-             <button onClick={handleInstallClick} className="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shadow-sm">
-                <Download size={20} />
-             </button>
-           )}
-
            {user && (
              <button 
                 onClick={() => setShowNotifs(!showNotifs)} 
@@ -221,7 +215,7 @@ const Navbar = ({ user, handleLogout }) => {
              <Link to="/" onClick={()=>setIsOpen(false)} className="text-4xl font-black text-slate-900 border-b pb-6 border-slate-50">Home</Link>
              <Link to="/contact" onClick={()=>setIsOpen(false)} className="text-4xl font-black text-slate-900 border-b pb-6 border-slate-50">Contact</Link>
              
-             {/* ✅ MOBILE MENU INSTALL OPTION */}
+             {/* ✅ MOBILE MENU INSTALL OPTION (Maintained) */}
              {deferredPrompt && (
                <button onClick={() => { handleInstallClick(); setIsOpen(false); }} className="text-4xl font-black text-blue-600 border-b pb-6 border-slate-50 flex items-center justify-between">
                   Install App <Smartphone size={30}/>
