@@ -8,7 +8,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import { 
   Bell, Phone, Droplet, User, CheckCircle, 
   XCircle, Package, ShieldCheck, Clock, Award, 
-  Tent, MapPin, Calendar, Link2, Activity, Zap
+  Tent, MapPin, Calendar, Link2, Activity, Settings, Zap
 } from 'lucide-react';
 
 import { generateCertificate } from '../utils/CertificateGenerator';
@@ -164,6 +164,13 @@ const DonorDashboard = ({ user }) => {
         <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-xl text-center relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div>
+                <button 
+                  onClick={() => navigate('/edit-profile')}
+                  className="absolute top-6 right-6 p-2.5 bg-slate-50 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all duration-300 shadow-sm border border-slate-100 group"
+                  title="Account Settings"
+                >
+                  <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
+                </button>
                 <div className="bg-slate-50 w-24 h-24 rounded-full mx-auto flex items-center justify-center text-red-600 mb-4 shadow-inner border-4 border-white">
                     <User size={48} />
                 </div>

@@ -25,6 +25,7 @@ import CampManager from './pages/CampManager';
 import BlockchainView from './pages/BlockchainView';
 import Contact from './pages/Contact';
 import ForgotPassword from './pages/ForgotPassword';
+import EditProfile from './pages/EditProfile';
 
 function App() {
   // --- User Session Logic (LocalStorage Sync) ---
@@ -134,6 +135,10 @@ function App() {
             <Route 
               path="/admin/camps" 
               element={user && user.role === 'admin' ? <CampManager /> : <Navigate to="/login" />} 
+            />
+            <Route 
+              path="/edit-profile" 
+              element={user ? <EditProfile user={user} setUser={setUser} /> : <Navigate to="/login" />} 
             />
 
             {/* Catch-all: Redirect to Home */}

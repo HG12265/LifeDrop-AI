@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { API_URL } from '../config'; 
-import ConfirmModal from '../components/ConfirmModal'; // PUDHU IMPORT
+import ConfirmModal from '../components/ConfirmModal';
 import { 
   Plus, Clock, CheckCircle2, MapPin, History, 
-  Droplet, Truck, AlertCircle, Link2, ShieldCheck, Phone 
+  Droplet, Truck, AlertCircle, Link2, ShieldCheck, Phone, Settings, User
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,24 +13,22 @@ const RequesterDashboard = ({ user }) => {
   const [history, setHistory] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, completed: 0 });
 
-  // --- MODAL STATES ---
   const [showReceivedModal, setShowReceivedModal] = useState(false);
   const [selectedReqId, setSelectedReqId] = useState(null);
 
-  // 1. Data Fetching Logic
   const fetchHistory = () => {
     fetch(`${API_URL}/api/requester/history/${user.unique_id}`, {
-    credentials: 'include'   // 🔥 MUST
-  })
-      .then(res => res.json())
-      .then(data => {
-        setHistory(data);
-        const total = data.length;
-        const pending = data.filter(r => r.status !== 'Completed' && r.status !== 'Rejected').length;
-        const completed = data.filter(r => r.status === 'Completed').length;
-        setStats({ total, pending, completed });
-      })
-      .catch(err => console.error("Error fetching history:", err));
+      credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => {
+      setHistory(data);
+      const total = data.length;
+      const pending = data.filter(r => r.status !== 'Completed' && r.status !== 'Rejected').length;
+      const completed = data.filter(r => r.status === 'Completed').length;
+      setStats({ total, pending, completed });
+    })
+    .catch(err => console.error("Error fetching history:", err));
   };
 
   useEffect(() => {
@@ -39,13 +37,11 @@ const RequesterDashboard = ({ user }) => {
     return () => clearInterval(interval);
   }, [user.unique_id]);
 
-  // 2. Trigger Modal Function
   const triggerReceivedModal = (reqId) => {
     setSelectedReqId(reqId);
     setShowReceivedModal(true);
   };
 
-  // 3. Final API Call (After Modal Confirmation)
   const finalizeReceived = async () => {
     setShowReceivedModal(false);
     try {
@@ -65,10 +61,9 @@ const RequesterDashboard = ({ user }) => {
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-8 animate-in fade-in duration-500 pb-20">
       
-      {/* CUSTOM RECEIVED CONFIRMATION MODAL */}
       <ConfirmModal 
         isOpen={showReceivedModal}
-        type="success" // Green theme for success action
+        type="success"
         title="Confirm Blood Receipt"
         message="Are you sure you have received the blood? This will officially close the request and notify the donor hero."
         confirmText="YES, I RECEIVED IT"
@@ -76,15 +71,40 @@ const RequesterDashboard = ({ user }) => {
         onCancel={() => setShowReceivedModal(false)}
       />
 
-      {/* 1. HEADER SECTION */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-8 rounded-[40px] shadow-sm border border-gray-100">
-        <div>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tighter italic">Welcome, {user.name} 👋</h2>
-          <p className="text-gray-500 font-bold text-sm uppercase tracking-widest opacity-60">Requester Control Center</p>
+      {/* --- 1. HEADER SECTION (REFINED) --- */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-8 rounded-[40px] shadow-sm border border-gray-100 relative overflow-hidden">
+        {/* Background Decoration */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
+        
+        <div className="flex items-center gap-5 relative z-10">
+          {/* User Avatar Icon */}
+          <div className="bg-slate-900 p-4 rounded-[24px] text-white shadow-lg hidden sm:block">
+            <User size={28} />
+          </div>
+          
+          <div>
+            <div className="flex items-center gap-3">
+              <h2 className="text-3xl font-black text-gray-800 tracking-tighter italic leading-none">
+                Welcome, {user.name} 👋
+              </h2>
+              {/* ✅ SETTINGS BUTTON: Placed perfectly next to the name */}
+              <button 
+                onClick={() => navigate('/edit-profile')}
+                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-300 group"
+                title="Edit Profile"
+              >
+                <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
+              </button>
+            </div>
+            <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-2">
+              Requester Control Center • ID: #{user.unique_id}
+            </p>
+          </div>
         </div>
+
         <button 
           onClick={() => navigate('/new-request')}
-          className="w-full md:w-auto bg-red-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl shadow-red-100 flex items-center justify-center gap-2 hover:bg-red-700 active:scale-95 transition transform"
+          className="w-full md:w-auto bg-red-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-red-100 flex items-center justify-center gap-2 hover:bg-red-700 active:scale-95 transition transform relative z-10"
         >
           <Plus size={24} /> NEW REQUEST
         </button>
@@ -144,7 +164,7 @@ const RequesterDashboard = ({ user }) => {
 
                             {req.status === 'On the way' && (
                                 <button 
-                                    onClick={() => triggerReceivedModal(req.id)} // TRIGGER MODAL
+                                    onClick={() => triggerReceivedModal(req.id)}
                                     className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl font-black text-[9px] tracking-widest shadow-lg shadow-green-100 hover:bg-green-700 transition active:scale-95"
                                 >
                                     <CheckCircle2 size={14} /> I RECEIVED THE BLOOD

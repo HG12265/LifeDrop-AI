@@ -16,10 +16,19 @@ require('dotenv').config();
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin using Environment Variable
-const firebaseConfig = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-admin.initializeApp({
-  credential: admin.credential.cert(firebaseConfig)
-});
+// Line 19-ah ippadi mathunga nanba:
+const firebaseConfig = process.env.FIREBASE_SERVICE_ACCOUNT 
+    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) 
+    : null;
+
+if (firebaseConfig) {
+    admin.initializeApp({
+        credential: admin.credential.cert(firebaseConfig)
+    });
+    console.log("✅ Firebase Admin Initialized");
+} else {
+    console.log("⚠️ Warning: FIREBASE_SERVICE_ACCOUNT not found in .env");
+}
 
 const app = express();
 
@@ -1912,6 +1921,39 @@ async function initDatabase() {
     }
 }
 
+app.put('/api/profile/update/:role/:u_id', async (req, res) => {
+    try {
+        const { role, u_id } = req.params;
+        const { full_name, phone, lat, lng } = req.body;
+        
+        // ✅ Node.js-la namma models-ah direct-ah use pannanum
+        const Model = role === 'donor' ? Donor : Requester;
+        
+        const result = await Model.updateOne(
+            { unique_id: u_id },
+            { $set: { full_name, phone, lat, lng } }
+        );
+
+        if (result.matchedCount > 0) {
+            const updatedUser = await Model.findOne({ unique_id: u_id });
+            res.json({ 
+                success: true, 
+                user: {
+                    name: updatedUser.full_name,
+                    email: updatedUser.email,
+                    role: role,
+                    unique_id: updatedUser.unique_id,
+                    bloodGroup: updatedUser.blood_group || ""
+                }
+            });
+        } else {
+            res.status(404).json({ success: false, message: "User not found" });
+        }
+    } catch (error) {
+        console.error("Update Error:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 LifeDrop Node.js Backend running on port ${PORT}`);
