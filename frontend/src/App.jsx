@@ -7,7 +7,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer'; 
 import ChatBot from './components/ChatBot';
 import ConfirmModal from './components/ConfirmModal'; // PUDHU COMPONENT
-
+import InstallPWA from './components/InstallPWA';
 // --- Pages ---
 import Home from './pages/Home';
 import DonorRegister from './pages/DonorRegister';
@@ -69,6 +69,7 @@ function App() {
         {/* Fixed & Global UI Elements */}
         <Navbar user={user} handleLogout={handleLogoutTrigger} />
         <Toaster richColors position="top-center" />
+        <InstallPWA />
         <ChatBot />
 
         {/* CUSTOM LOGOUT CONFIRMATION MODAL */}
