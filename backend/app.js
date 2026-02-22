@@ -423,36 +423,19 @@ async function sendCooldownCompletionEmail(donorEmail, donorName) {
 const sendPushNotification = async (token, patientName, bloodGroup, hospital) => {
     const message = {
         token: token,
-        // ✅ Root-la 'notification' irukka koodathu nanba
+        // ✅ MUKKIYAM: Ellathaiyum 'data' kulla anupuroam. 
+        // Root-la 'notification' irukka koodathu. Appo thaan double alert thadukka mudiyum.
         data: {
-            click_action: 'https://lifedrop-ai.vercel.app/donor-dashboard'
+            title: '🚨 URGENT BLOOD REQUEST',
+            body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`,
+            click_action: 'https://life-drop-ai.vercel.app/donor-dashboard'
         },
         android: {
             priority: 'high',
-            collapseKey: 'emergency_alert', // Same key pottu overwrite panna
-            notification: {
-                title: '🚨 URGENT BLOOD REQUEST',
-                body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`,
-                tag: 'emergency_alert', // Android-la double-ah vara thadukkum
-                sound: 'default',
-                vibrateTimings: ['0s', '1s', '0.5s', '1s', '0.5s', '1s', '0.5s', '1s'], 
-            }
         },
         webpush: {
             headers: {
-                Urgency: "high",
-                Topic: "emergency_alert" // Web-la double-ah vara thadukkum
-            },
-            notification: {
-                title: '🚨 URGENT BLOOD REQUEST',
-                body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`,
-                icon: "/pwa-192x192.png",
-                badge: "/pwa-192x192.png",
-                tag: 'emergency_alert', // ✅ MUKKIYAM: Intha tag iruntha orey oru notification thaan varum
-                renotify: true,
-                requireInteraction: true,
-                vibrate: [1000, 500, 1000, 500, 1000, 500, 1000] 
-                
+                Urgency: "high"
             }
         }
     };
@@ -462,7 +445,7 @@ const sendPushNotification = async (token, patientName, bloodGroup, hospital) =>
         console.log('✅ Push Notification Sent Successfully');
     } catch (error) {
         console.error('❌ Push Notification Error:', error);
-        console.log("📡 Sending Push to Token:", token);
+        console.log("📡 Token used:", token);
     }
 };
 
