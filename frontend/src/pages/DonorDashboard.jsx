@@ -64,12 +64,14 @@ const DonorDashboard = ({ user }) => {
           // 1. Show Toast Alert
           toast.error("🚨 URGENT REQUEST", {
             description: payload.notification?.body || payload.data?.body,
-            duration: 10000,
+            duration: 15000,
           });
 
           // 2. Trigger Phone Vibration
           if ('vibrate' in navigator) {
+      // 5 seconds pattern
             navigator.vibrate([1000, 500, 1000, 500, 1000, 500, 1000]);
+            console.log("Vibration triggered!");
           }
 
           // 3. Refresh list immediately
