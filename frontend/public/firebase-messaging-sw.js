@@ -22,7 +22,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
   // Backend-la namma anupura click_action URL-ku pogum
-  const urlToOpen = event.notification.data?.click_action || 'https://lifedrop-ai.vercel.app/donor-dashboard';
+  const urlToOpen = event.notification.data?.click_action || 'https://life-drop-ai.vercel.app/donor-dashboard';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
