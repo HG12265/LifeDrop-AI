@@ -4,11 +4,11 @@ import { API_URL } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
 import { 
   Plus, Clock, CheckCircle2, MapPin, History, 
-  Droplet, Truck, AlertCircle, Link2, ShieldCheck, Phone, Settings, User
+  Droplet, Truck, AlertCircle, Link2, ShieldCheck, Phone, Settings, User, MessageSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const RequesterDashboard = ({ user }) => {
+const RequesterDashboard = ({ user, setUser }) => {
   const navigate = useNavigate();
   const [history, setHistory] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, completed: 0 });
@@ -16,19 +16,26 @@ const RequesterDashboard = ({ user }) => {
   const [showReceivedModal, setShowReceivedModal] = useState(false);
   const [selectedReqId, setSelectedReqId] = useState(null);
 
+  // 1. Data Fetching Logic (Sync with Backend assigned_donor API)
   const fetchHistory = () => {
+    if (!user?.unique_id) return;
     fetch(`${API_URL}/api/requester/history/${user.unique_id}`, {
       credentials: 'include'
     })
     .then(res => res.json())
     .then(data => {
+      
       setHistory(data);
+      // Live Statistics calculation
       const total = data.length;
       const pending = data.filter(r => r.status !== 'Completed' && r.status !== 'Rejected').length;
       const completed = data.filter(r => r.status === 'Completed').length;
       setStats({ total, pending, completed });
+      console.log("Full History Data:", data); 
+      setHistory(data);
     })
     .catch(err => console.error("Error fetching history:", err));
+    
   };
 
   useEffect(() => {
@@ -71,13 +78,11 @@ const RequesterDashboard = ({ user }) => {
         onCancel={() => setShowReceivedModal(false)}
       />
 
-      {/* --- 1. HEADER SECTION (REFINED) --- */}
+      {/* --- 1. HEADER SECTION --- */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-8 rounded-[40px] shadow-sm border border-gray-100 relative overflow-hidden">
-        {/* Background Decoration */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
         
         <div className="flex items-center gap-5 relative z-10">
-          {/* User Avatar Icon */}
           <div className="bg-slate-900 p-4 rounded-[24px] text-white shadow-lg hidden sm:block">
             <User size={28} />
           </div>
@@ -85,9 +90,8 @@ const RequesterDashboard = ({ user }) => {
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-3xl font-black text-gray-800 tracking-tighter italic leading-none">
-                Welcome, {user.name} 👋
+                Welcome sir, {user.name} 👋
               </h2>
-              {/* ✅ SETTINGS BUTTON: Placed perfectly next to the name */}
               <button 
                 onClick={() => navigate('/edit-profile')}
                 className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-300 group"
@@ -176,38 +180,56 @@ const RequesterDashboard = ({ user }) => {
                     </div>
                 </div>
 
-                {req.accepted_donor && (
-                  <div className="mt-6 p-5 bg-white border-2 border-dashed border-green-100 rounded-[28px] animate-in slide-in-from-top duration-500">
+                {/* --- ✅ NEW: DIRECT CALL & WHATSAPP LOGIC --- */}
+                {req.assigned_donor && (
+                  <div className="mt-6 p-5 bg-white border-2 border-dashed border-slate-100 rounded-[28px] animate-in slide-in-from-top duration-500">
                       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                           <div className="flex items-center gap-4">
-                              <div className="bg-green-100 p-3 rounded-2xl text-green-600">
-                                  <ShieldCheck size={24} />
+                              <div className="bg-red-50 p-3 rounded-2xl text-red-600 shadow-sm">
+                                  <User size={24} />
                               </div>
                               <div>
-                                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Donor Hero Matched</p>
-                                  <h4 className="font-black text-gray-800 text-lg uppercase tracking-tight">{req.accepted_donor.name}</h4>
+                                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Assigned Hero</p>
+                                  <h4 className="font-black text-gray-800 text-lg uppercase tracking-tight">{req.assigned_donor.name}</h4>
                               </div>
                           </div>
                           
-                          <a 
-                              href={`tel:${req.accepted_donor.phone}`} 
-                              className="w-full sm:w-auto flex items-center justify-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl hover:bg-black transition active:scale-95 border-b-4 border-green-600"
-                          >
-                              <Phone size={18} fill="white" />
-                              {req.accepted_donor.phone}
-                          </a>
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            {/* 1. CALL BUTTON */}
+                            <a 
+                                href={`tel:${req.assigned_donor.phone}`} 
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs shadow-xl hover:bg-black transition active:scale-95"
+                            >
+                                <Phone size={16} fill="white" /> CALL
+                            </a>
+
+                            {/* 2. WHATSAPP BUTTON */}
+                            <a 
+                                href={`https://wa.me/${req.assigned_donor.phone.replace(/\s/g, '')}?text=${encodeURIComponent(
+                                    `Hello ${req.assigned_donor.name}, I am ${user.name} from LifeDrop. I have sent a blood request for patient ${req.patient} (Group: ${req.bloodGroup}) at ${req.hospital}. Please check the app and help if possible! 🙏`
+                                )}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-4 rounded-2xl font-black text-xs shadow-xl hover:bg-green-700 transition active:scale-95"
+                            >
+                                <MessageSquare size={16} fill="white" /> WHATSAPP
+                            </a>
+                          </div>
                       </div>
-                      <p className="text-[9px] font-bold text-green-600 mt-4 uppercase tracking-[0.2em] italic text-center sm:text-left">
-                          * Secure connection established. You can now contact the donor.
-                      </p>
+                      
+                      {req.status === 'Pending' && (
+                        <p className="text-[9px] font-bold text-orange-500 mt-4 uppercase tracking-[0.2em] italic text-center sm:text-left flex items-center gap-1">
+                            <AlertCircle size={10}/> Waiting for donor to accept on app. You can contact them directly above for faster response.
+                        </p>
+                      )}
                   </div>
                 )}
 
-                {req.status === 'Pending' && (
+                {req.status === 'Pending' && !req.assigned_donor && (
                    <div className="mt-6 flex items-center gap-3 bg-orange-50 p-4 rounded-2xl border border-orange-100">
                       <div className="bg-orange-500 p-1.5 rounded-full text-white"><AlertCircle size={14}/></div>
                       <p className="text-xs font-bold text-orange-600 italic">
-                        Searching for compatible heroes nearby. You will see donor details once they accept.
+                        Searching for compatible heroes nearby. You will see donor details once you assign a request.
                       </p>
                    </div>
                 )}
