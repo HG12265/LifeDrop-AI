@@ -461,6 +461,7 @@ const sendPushNotification = async (token, patientName, bloodGroup, hospital) =>
         console.log('✅ Push Notification Sent Successfully');
     } catch (error) {
         console.error('❌ Push Notification Error:', error);
+        console.log("📡 Sending Push to Token:", token);
     }
 };
 
