@@ -2,13 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { API_URL } from '../config'; 
 import { QRCodeCanvas } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom'; 
-import { requestForToken, onMessageListener } from '../firebase-config'; // 🔥 Firebase Integration
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
 import { 
   Bell, Phone, Droplet, User, CheckCircle, 
   XCircle, Package, ShieldCheck, Clock, Award, 
-  Tent, MapPin, Calendar, Link2, Activity, Settings, Zap
+  Tent, MapPin, Calendar, Link2, Activity, Settings
 } from 'lucide-react';
 
 import { generateCertificate } from '../utils/CertificateGenerator';
@@ -27,7 +26,7 @@ const DonorDashboard = ({ user }) => {
   
   const profileUrl = `${window.location.origin}/profile/${user.unique_id}`;
 
-  // 1. Fetching Alerts
+  // 1. Fetching Alerts (Targeted for this donor)
   const fetchAlerts = () => {
     fetch(`${API_URL}/api/donor/targeted-alerts/${user.unique_id}`)
       .then(res => res.json())
@@ -35,7 +34,7 @@ const DonorDashboard = ({ user }) => {
       .catch(err => console.error("Error alerts:", err));
   };
 
-  // 2. Fetching Stats & Cooldown
+  // 2. Fetching Stats & Cooldown Status
   const fetchStats = () => {
     fetch(`${API_URL}/api/donor/profile-stats/${user.unique_id}`)
       .then(res => res.json())
@@ -43,7 +42,7 @@ const DonorDashboard = ({ user }) => {
       .catch(err => console.error("Error stats:", err));
   };
 
-  // 3. Fetching Camps
+  // 3. Fetching Upcoming Camps
   const fetchCamps = () => {
     fetch(`${API_URL}/api/camps/all`)
       .then(res => res.json())
@@ -56,30 +55,7 @@ const DonorDashboard = ({ user }) => {
     fetchStats();
     fetchCamps();
 
-    if (user && user.role === 'donor') {
-      requestForToken(user.unique_id); // Get FCM Token
-
-      onMessageListener()
-        .then((payload) => {
-          // 1. Show Toast Alert
-          toast.error("🚨 URGENT REQUEST", {
-            description: payload.notification?.body || payload.data?.body,
-            duration: 15000,
-          });
-
-          // 2. Trigger Phone Vibration
-          if ('vibrate' in navigator) {
-      // 5 seconds pattern
-            navigator.vibrate([1000, 500, 1000, 500, 1000, 500, 1000]);
-            console.log("Vibration triggered!");
-          }
-
-          // 3. Refresh list immediately
-          fetchAlerts(); 
-        }) // Correct-ah inga thaan .then mudiyanum
-        .catch((err) => console.log('FCM failed: ', err));
-    }
-
+    // Real-time synchronization every 15 seconds
     const interval = setInterval(() => {
       fetchAlerts();
       fetchStats();
@@ -87,7 +63,7 @@ const DonorDashboard = ({ user }) => {
 
     return () => clearInterval(interval);
   }, [user.unique_id]);
-  
+
   // --- HANDLERS ---
 
   const handleToggleStatus = async () => {
@@ -150,7 +126,6 @@ const DonorDashboard = ({ user }) => {
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-10 pb-20 animate-in fade-in duration-700">
       
-      {/* 1. CONFIRMATION MODAL */}
       <ConfirmModal 
         isOpen={showDonateModal}
         title="Confirm Donation"
@@ -181,7 +156,7 @@ const DonorDashboard = ({ user }) => {
                 
                 <div className="mt-8 flex flex-col items-center bg-gray-50 p-6 rounded-[32px] border-2 border-dashed border-gray-200">
                     <QRCodeCanvas value={profileUrl} size={140} level={"H"} />
-                    <p className="text-[10px] font-black text-gray-400 mt-4 uppercase tracking-widest">Hero Digital ID</p>
+                    <p className="text-[10px] font-black text-gray-400 mt-4 uppercase tracking-widest leading-none">Hero Digital ID</p>
                 </div>
                 
                 <div className="mt-8 grid grid-cols-2 gap-4">
@@ -208,7 +183,6 @@ const DonorDashboard = ({ user }) => {
                     </button>
                 </div>
 
-                {/* --- COOLDOWN PROGRESS INDICATOR --- */}
                 {stats.days_remaining > 0 && (
                     <div className="mt-6 bg-slate-900 text-white p-6 rounded-[32px] text-left relative overflow-hidden shadow-2xl animate-in zoom-in">
                         <Clock className="absolute right-[-10px] bottom-[-10px] opacity-10" size={80} />
@@ -256,7 +230,6 @@ const DonorDashboard = ({ user }) => {
                         </div>
                     </div>
 
-                    {/* STATUS: PENDING */}
                     {note.status === 'Pending' && (
                     <div className="flex flex-col sm:flex-row gap-4 mt-8">
                         <button onClick={() => handleRespond(note.notif_id, 'Accepted')} className="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2 shadow-xl shadow-green-100 hover:bg-green-700 transition transform active:scale-95">
@@ -268,7 +241,6 @@ const DonorDashboard = ({ user }) => {
                     </div>
                     )}
 
-                    {/* STATUS: ACCEPTED */}
                     {note.status === 'Accepted' && (
                     <div className="space-y-6 mt-6 animate-in slide-in-from-bottom duration-500">
                         <div className="flex flex-col sm:flex-row gap-4">
@@ -297,7 +269,6 @@ const DonorDashboard = ({ user }) => {
                     </div>
                     )}
 
-                    {/* STATUS: DONATED */}
                     {note.status === 'Donated' && (
                         <div className="mt-6 space-y-4">
                             <div className="bg-blue-600 p-6 rounded-[32px] text-white flex items-center justify-center gap-4 shadow-xl animate-in zoom-in">
@@ -313,7 +284,6 @@ const DonorDashboard = ({ user }) => {
                         </div>
                     )}
 
-                    {/* STATUS: COMPLETED */}
                     {note.status === 'Completed' && (
                       <div className="mt-6 space-y-3">
                         <div className="bg-green-600 p-6 rounded-[32px] text-white flex items-center justify-center gap-4 shadow-xl">

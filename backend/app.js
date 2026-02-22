@@ -12,24 +12,6 @@ const https = require('https');
 const { ObjectId } = mongoose.Types;
 require('dotenv').config();
 
-// ==================== FIREBASE ADMIN INITIALIZATION ====================
-const admin = require('firebase-admin');
-
-// Initialize Firebase Admin using Environment Variable
-// Line 19-ah ippadi mathunga nanba:
-const firebaseConfig = process.env.FIREBASE_SERVICE_ACCOUNT 
-    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) 
-    : null;
-
-if (firebaseConfig) {
-    admin.initializeApp({
-        credential: admin.credential.cert(firebaseConfig)
-    });
-    console.log("✅ Firebase Admin Initialized");
-} else {
-    console.log("⚠️ Warning: FIREBASE_SERVICE_ACCOUNT not found in .env");
-}
-
 const app = express();
 
 // ==================== CONFIGURATION ====================
@@ -127,7 +109,6 @@ const donorSchema = new mongoose.Schema({
     donation_count: { type: Number, default: 0 },
     cooldown_email_sent: { type: Boolean, default: false },
     is_available: { type: Boolean, default: true },
-    fcm_token: { type: String, default: null }, // Token store panna
     created_at: { type: Date, default: Date.now }
 });
 
@@ -418,37 +399,6 @@ async function sendCooldownCompletionEmail(donorEmail, donorName) {
     }
 }
 
-// ==================== PUSH NOTIFICATION HELPER FUNCTION ====================
-
-const sendPushNotification = async (token, patientName, bloodGroup, hospital) => {
-    const message = {
-        token: token,
-        // ✅ MUKKIYAM: Ellathaiyum 'data' kulla anupuroam. 
-        // Root-la 'notification' irukka koodathu. Appo thaan double alert thadukka mudiyum.
-        data: {
-            title: '🚨 URGENT BLOOD REQUEST',
-            body: `Hero! ${patientName} needs ${bloodGroup} blood at ${hospital}.`,
-            click_action: 'https://life-drop-ai.vercel.app/donor-dashboard'
-        },
-        android: {
-            priority: 'high',
-        },
-        webpush: {
-            headers: {
-                Urgency: "high"
-            }
-        }
-    };
-
-    try {
-        await admin.messaging().send(message);
-        console.log('✅ Push Notification Sent Successfully');
-    } catch (error) {
-        console.error('❌ Push Notification Error:', error);
-        console.log("📡 Token used:", token);
-    }
-};
-
 // Initialize Inventory
 async function initInventory() {
     const groups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
@@ -620,19 +570,6 @@ app.post('/register/requester', async (req, res) => {
     } catch (error) {
         console.error('Requester Registration Error:', error);
         res.status(500).json({ message: "Internal Server Error" });
-    }
-});
-
-// ==================== NEW: SAVE FCM TOKEN API ====================
-// API to Save FCM Token (Donor login/dashboard appo call aagum)
-app.post('/api/save-fcm-token', async (req, res) => {
-    try {
-        const { unique_id, fcm_token } = req.body;
-        // MongoDB-la donor profile-la token-ah save panroam
-        await Donor.updateOne({ unique_id }, { $set: { fcm_token: fcm_token } });
-        res.json({ success: true, message: "Token updated" });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -1050,23 +987,32 @@ app.post('/api/send-request', async (req, res) => {
     try {
         const data = req.body;
         
+        // 1. Check if notification already exists
         const exists = await Notification.findOne({
             donor_id: data.donor_id,
             request_id: new ObjectId(data.request_id)
         });
         
         if (!exists) {
-            const newNotif = await Notification.create({
+            // 2. Fetch details
+            const donor = await Donor.findOne({ unique_id: data.donor_id });
+            const bloodReq = await BloodRequest.findById(data.request_id);
+
+            // SAFETY CHECK: Donor illa BloodRequest illana error anupuvom (Server crash aagathu)
+            if (!donor || !bloodReq) {
+                return res.status(404).json({ message: "Donor or Request not found" });
+            }
+
+            const requester = await Requester.findOne({ unique_id: bloodReq.requester_id });
+            
+            // 3. Create Notification record in DB
+            await Notification.create({
                 donor_id: data.donor_id,
                 request_id: new ObjectId(data.request_id),
                 status: "Pending",
                 blood_bag_id: null,
                 created_at: new Date()
             });
-            
-            const donor = await Donor.findOne({ unique_id: data.donor_id });
-            const bloodReq = await BloodRequest.findById(data.request_id);
-            const requester = await Requester.findOne({ unique_id: bloodReq.requester_id });
             
             const reqDetails = {
                 patient: bloodReq.patient_name,
@@ -1076,21 +1022,10 @@ app.post('/api/send-request', async (req, res) => {
                 phone: bloodReq.contact_number
             };
             
-            // Send email asynchronously
+            // 4. Send email (Firebase logic removed successfully ✅)
             sendRequestAlertEmail(donor.email, donor.full_name, reqDetails);
             
-            // --- ADD PUSH NOTIFICATION TRIGGER ---
-            if (donor && donor.fcm_token && bloodReq) {
-                // Trigger the push notification
-                sendPushNotification(
-                    donor.fcm_token, 
-                    bloodReq.patient_name, 
-                    bloodReq.blood_group, 
-                    bloodReq.hospital
-                );
-            }
-            
-            res.status(201).json({ message: "Request sent successfully via Email & Push!" });
+            res.status(201).json({ message: "Request sent successfully via Email" });
         } else {
             res.json({ message: "Request already sent to this donor" });
         }
