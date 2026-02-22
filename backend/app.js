@@ -818,29 +818,26 @@ app.get('/api/donor/:u_id', async (req, res) => {
     }
 });
 
-// Get Requester History
-// app.js kulla intha route-ah update pannunga
 app.get('/api/requester/history/:u_id', async (req, res) => {
     try {
         const { u_id } = req.params;
-        
-        // 1. Fetch all requests by this requester
         const requests = await BloodRequest.find({ requester_id: u_id }).sort({ timestamp: -1 });
         
         const output = [];
         for (let r of requests) {
             let assignedDonorInfo = null;
             
-            // 2. ✅ FIX: r._id (ObjectId)-ah vechu notification-ah correctly find panroam
-            // Inga status check thevai illai, assigned aagi irundhale details reveal aaganum
-            const notif = await Notification.findOne({ request_id: r._id });
+            // ✅ FIX: r._id-ah string-ah mathi notification-la search panroam
+            const notif = await Notification.findOne({ request_id: r._id.toString() });
             
+            // Debugging log (Render logs-la check panna)
             if (notif) {
+                console.log(`✅ Found donor for request ${r._id}`);
                 const donor = await Donor.findOne({ unique_id: notif.donor_id });
                 if (donor) {
                     assignedDonorInfo = {
                         name: donor.full_name,
-                        phone: donor.phone, // Reveal full number
+                        phone: donor.phone,
                         status: notif.status
                     };
                 }
@@ -852,19 +849,14 @@ app.get('/api/requester/history/:u_id', async (req, res) => {
                 status: r.status,
                 patient: r.patient_name,
                 hospital: r.hospital,
-                date: r.timestamp.toLocaleDateString('en-GB', { 
-                    day: '2-digit', 
-                    month: 'short', 
-                    year: 'numeric' 
-                }),
-                // ✅ Frontend intha 'assigned_donor' key-ah thaan use pannuthu
+                date: r.timestamp.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
                 assigned_donor: assignedDonorInfo 
             });
         }
         res.json(output);
     } catch (error) {
         console.error("History Error:", error);
-        res.status(500).json({ message: "Error fetching history" });
+        res.status(500).json({ message: "Error" });
     }
 });
 
@@ -991,17 +983,13 @@ app.post('/api/send-request', async (req, res) => {
     try {
         const data = req.body;
         
-        // ✅ FIX: request_id-ah nichayama ObjectId-ah mathuroam
-        const requestIdObject = new ObjectId(data.request_id);
-
-        // 1. Check if notification already exists
+        // 1. Check if notification already exists (Using String ID)
         const exists = await Notification.findOne({
             donor_id: data.donor_id,
-            request_id: requestIdObject
+            request_id: data.request_id // Direct string match
         });
         
         if (!exists) {
-            // 2. Fetch details
             const donor = await Donor.findOne({ unique_id: data.donor_id });
             const bloodReq = await BloodRequest.findById(data.request_id);
 
@@ -1011,12 +999,11 @@ app.post('/api/send-request', async (req, res) => {
 
             const requester = await Requester.findOne({ unique_id: bloodReq.requester_id });
             
-            // 3. Create Notification record in DB (Stored as ObjectId)
+            // 2. Create Notification (Store request_id as String)
             await Notification.create({
                 donor_id: data.donor_id,
-                request_id: requestIdObject,
+                request_id: data.request_id, // ✅ Stored as String
                 status: "Pending",
-                blood_bag_id: null,
                 created_at: new Date()
             });
             
@@ -1028,7 +1015,6 @@ app.post('/api/send-request', async (req, res) => {
                 phone: bloodReq.contact_number
             };
             
-            // Email Alert (Async)
             sendRequestAlertEmail(donor.email, donor.full_name, reqDetails);
             
             return res.status(201).json({ message: "Request sent successfully!" });
