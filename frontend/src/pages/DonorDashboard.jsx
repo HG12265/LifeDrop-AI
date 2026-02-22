@@ -69,7 +69,7 @@ const DonorDashboard = ({ user }) => {
 
           // 2. Trigger Phone Vibration
           if ('vibrate' in navigator) {
-            navigator.vibrate([500, 200, 500, 200, 500]);
+            navigator.vibrate([1000, 500, 1000, 500, 1000, 500, 1000]);
           }
 
           // 3. Refresh list immediately

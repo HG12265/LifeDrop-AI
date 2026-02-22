@@ -10,19 +10,37 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// ✅ Background handler-la manual-ah showNotification panna koodathu
+// ✅ BACKGROUND MESSAGE HANDLER (Custom Vibration & Persistence)
 messaging.onBackgroundMessage((payload) => {
   console.log('Received background message ', payload);
-  // Browser automatic-ah backend-la irunthu vara 'notification' object-ah kaattidum.
-  // Inga extra-va ethuvum ezhutha thevai illai.
+
+  // Backend-la irunthu vara data-va edukuroam
+  const notificationTitle = payload.data?.title || payload.notification?.title || "🚨 EMERGENCY BLOOD REQUEST";
+  const notificationOptions = {
+    body: payload.data?.body || payload.notification?.body || "A patient needs your help immediately!",
+    icon: '/pwa-192x192.png',
+    badge: '/pwa-192x192.png',
+    tag: 'emergency-alert', // Double notification-ah thadukka orey tag
+    renotify: true,
+    requireInteraction: true, // ✅ User click/swipe pannura varaikkum notification screen-la irukkum
+    
+    // ✅ 5 SECONDS VIBRATION PATTERN (Vibrate 1s, Pause 0.5s, Vibrate 1s...)
+    vibrate: [1000, 500, 1000, 500, 1000, 500, 1000], 
+    
+    data: {
+      url: payload.data?.click_action || 'https://life-drop-ai.vercel.app/donor-dashboard'
+    }
+  };
+
+  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// ✅ Notification click panna app open aaga intha logic mattum pothum
+// ✅ NOTIFICATION CLICK LOGIC (Smart Window Focus)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
-  // Backend-la namma anupura click_action URL-ku pogum
-  const urlToOpen = event.notification.data?.click_action || 'https://life-drop-ai.vercel.app/donor-dashboard';
+  // Notification data-la irunthu URL-ah edukuroam
+  const urlToOpen = event.notification.data?.url || 'https://life-drop-ai.vercel.app/donor-dashboard';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
