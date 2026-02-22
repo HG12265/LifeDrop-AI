@@ -16,29 +16,29 @@ const app = initializeApp(firebaseConfig);
 export const messaging = getMessaging(app);
 
 // Function to request permission and get Token
+// src/firebase-config.js kulla intha function-ah update pannunga
 export const requestForToken = async (user_id) => {
   try {
     const permission = await Notification.requestPermission();
-    
     if (permission === "granted") {
+      // Force refresh panna 'deleteToken' use pannalaam, aana ippo namma 
+      // direct-ah getToken call pannuvom
       const token = await getToken(messaging, { 
         vapidKey: "BK9aXbWgbd7YOPB-GL8cPQTZEDViuqKHEuWIE98xamEGCDAAYhoa4i8qq3XXaATEYc1lX-a_7bMbKOi8k1Y88KQ" 
       });
 
       if (token) {
-        console.log("FCM Token Generated:", token);
-        // Backend-ku token-ah save panna anupuroam
-        await fetch(`https://lifedrop-ai.onrender.com/api/save-fcm-token`, {
+        console.log("New Token Generated:", token);
+        // Backend-ku anupuroam
+        await fetch(`${API_URL}/api/save-fcm-token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ unique_id: user_id, fcm_token: token })
         });
       }
-    } else {
-      console.log("Notification permission denied.");
     }
   } catch (error) {
-    console.error("Error getting FCM token:", error);
+    console.error("Error getting token:", error);
   }
 };
 
