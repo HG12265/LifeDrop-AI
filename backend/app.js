@@ -20,7 +20,7 @@ const MONGO_URI = process.env.MONGODB_URI;
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const SENDER_EMAIL = "lifedrop108@gmail.com";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
 const SECRET_KEY = process.env.SECRET_KEY || 'lifedrop-super-secret-key-2024';
 
 // ==================== MIDDLEWARE ====================
