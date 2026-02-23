@@ -20,7 +20,7 @@ const MONGO_URI = process.env.MONGODB_URI;
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const SENDER_EMAIL = "lifedrop108@gmail.com";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 const SECRET_KEY = process.env.SECRET_KEY || 'lifedrop-super-secret-key-2024';
 
 // ==================== MIDDLEWARE ====================
@@ -1707,45 +1707,43 @@ app.delete('/api/admin/camps/delete/:id', async (req, res) => {
     }
 });
 
-// Chat with AI
 app.post('/api/chat', async (req, res) => {
-    try {
-        const userMsg = req.body.message || "";
-        
-        // Fetch Inventory Context
-        const inventory = await BloodInventory.find();
-        const stockInfo = inventory.map(i => `${i.blood_group}: ${i.units} units`).join(", ");
-        
-        // Advanced System Instructions
-        const promptContext = `
-    System: You are 'LifeDrop AI Assistant'.
-    Inventory Data: ${stockInfo}.
+    const { message } = req.body;
+
+    const inventory = await BloodInventory.find({});
+    const stockInfo = inventory.map(i => `${i.blood_group}: ${i.units} units`).join(", ");
+
+    // ✅ NEW PROMPT: Identity is now the FIRST thing AI knows.
+    const prompt_context = `
+    Your name is 'LifeDrop AI'. You are a proud creation of GOWTHAM G.
     
-    Strict Rules:
-    - Only answer health, blood donation, or LifeDrop app related queries.
-    - If user asks about blood stock, use the provided Inventory Data.
-    - For non-medical/off-topic questions, say: 'I am a specialized Blood Donation Assistant. I only handle health-related queries.'
-    - Support Tamil and English. Answer in the user's language.
-    - Guidance for donation: Tell them to go to 'Become a Donor'.
-    - Guidance for requesting: Tell them to use 'New Request'.
+    WHO IS GOWTHAM G? (Your Creator):
+    - GOWTHAM G is a professional Full-stack Developer.
+    - He is currently pursuing his MCA (Master of Computer Applications) at Periyar University.
+    - He has already completed his BCA degree.
+    - His expertise includes: React.js, Node.js, MongoDB, AI Integration, and Blockchain Technology.
+    - He built 'LifeDrop' to save lives using modern technology.
+
+    YOUR CORE RULES:
+    1. If anyone asks "Who are you?", "Who developed you?", "Who is the owner?", or "Who created this app?", you must answer: "I am LifeDrop AI, developed by GOWTHAM G. He is a brilliant developer currently pursuing MCA at Periyar University."
+    2. You should also mention his skills (React, Node, Blockchain) if the user asks for more details about him.
+    3. For blood stock queries, use this data: ${stockInfo}.
+    4. For any other general questions NOT related to LifeDrop, Health, or Gowtham G, say: "I am specialized in LifeDrop app and health queries only."
+    5. Always be friendly and support both Tamil and English.
     `;
-        
-        // Payload for Gemini API
-        const payload = {
-            contents: [{
-                parts: [{ text: `${promptContext}\n\nUser Question: ${userMsg}` }]
-            }]
-        };
-        
+
+    const payload = {
+        contents: [{
+            parts: [{ text: `${prompt_context}\n\nUser Question: ${message}` }]
+        }]
+    };
+
+    try {
         const response = await axios.post(GEMINI_URL, payload);
-        const resData = response.data;
-        
-        const botReply = resData.candidates[0].content.parts[0].text;
+        const botReply = response.data.candidates[0].content.parts[0].text;
         res.json({ reply: botReply });
-        
     } catch (error) {
-        console.log(`AI Error: ${error.message}`);
-        res.status(500).json({ reply: "Sorry nanba, I'm having trouble connecting to AI. Please try again." });
+        res.status(500).json({ reply: "Sorry nanba, I'm having trouble connecting." });
     }
 });
 
