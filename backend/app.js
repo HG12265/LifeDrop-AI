@@ -468,6 +468,44 @@ async function addBlockchainBlock(requestId, event, dataDict) {
     });
 }
 
+// 1. Helper: Fetch All Unique User Emails
+const getAllUserEmails = async () => {
+    try {
+        const donors = await Donor.find({}, 'email');
+        const requesters = await Requester.find({}, 'email');
+        const emails = [...donors.map(d => d.email), ...requesters.map(r => r.email)];
+        return [...new Set(emails)]; // Duplicate emails-ah remove panna
+    } catch (error) {
+        console.error("Error fetching emails:", error);
+        return [];
+    }
+};
+
+// 2. Helper: Send Bulk Email via Brevo
+const sendBulkEmail = async (emails, subject, htmlContent) => {
+    if (emails.length === 0) return;
+
+    const url = "https://api.brevo.com/v3/smtp/email";
+    const payload = {
+        "sender": { "name": "LifeDrop Official 💧", "email": "lifedrop108@gmail.com" },
+        "to": emails.map(email => ({ "email": email })),
+        "subject": subject,
+        "htmlContent": htmlContent
+    };
+
+    try {
+        await axios.post(url, payload, {
+            headers: {
+                "api-key": process.env.BREVO_API_KEY,
+                "content-type": "application/json"
+            }
+        });
+        console.log(`✅ Bulk Email Sent to ${emails.length} users`);
+    } catch (error) {
+        console.error("❌ Bulk Email Error:", error.response ? error.response.data : error.message);
+    }
+};
+
 // ==================== ROUTES ====================
 
 // Home Route
@@ -1416,12 +1454,30 @@ app.post('/api/admin/broadcast', async (req, res) => {
     try {
         const data = req.body;
         
+        // DB-la broadcast save panroam
         await Broadcast.create({
             message: data.message,
             timestamp: new Date()
         });
+
+        // --- BULK MAIL LOGIC ---
+        const emails = await getAllUserEmails();
+        const mailContent = `
+            <div style="font-family: sans-serif; padding: 20px; background: #fef2f2; border-radius: 20px; border: 1px solid #fee2e2; max-width: 600px; margin: auto;">
+                <h2 style="color: #dc2626; margin-bottom: 15px;">Emergency Alert 📢</h2>
+                <p style="font-size: 16px; color: #1e293b; line-height: 1.6; font-weight: bold;">
+                    ${data.message}
+                </p>
+                <hr style="border: 0; border-top: 1px solid #fecaca; margin: 20px 0;"/>
+                <p style="font-size: 11px; color: #94a3b8; text-align: center;">
+                    This is an official emergency broadcast from the LifeDrop Admin Team.
+                </p>
+            </div>
+        `;
+
+        sendBulkEmail(emails, "LifeDrop Emergency Alert!", mailContent);
         
-        res.status(201).json({ message: "Broadcast sent successfully!" });
+        res.status(201).json({ message: "Broadcast sent & Emails Dispatched!" });
     } catch (error) {
         console.error('Create Broadcast Error:', error);
         res.status(500).json({ message: "Internal Server Error" });
@@ -1563,7 +1619,8 @@ app.post('/api/admin/camps/create', async (req, res) => {
     try {
         const data = req.body;
         
-        await BloodCamp.create({
+        // DB-la camp save panroam
+        const newCamp = await BloodCamp.create({
             title: data.title,
             location: data.location,
             city: data.city,
@@ -1573,19 +1630,44 @@ app.post('/api/admin/camps/create', async (req, res) => {
             created_at: new Date()
         });
         
-        // Create broadcast message
+        // Automatic-ah broadcast message create panroam
         const broadcastMsg = `New Donation Camp: ${data.title} at ${data.city} on ${data.date}`;
         await Broadcast.create({
             message: broadcastMsg,
             timestamp: new Date()
         });
+
+        // --- BULK MAIL LOGIC ---
+        const emails = await getAllUserEmails();
+        const mailContent = `
+            <div style="font-family: sans-serif; padding: 20px; border: 2px solid #ef4444; border-radius: 20px; max-width: 600px; margin: auto;">
+                <h2 style="color: #ef4444; text-align: center;">New Donation Camp! 🎪</h2>
+                <p>Hello Hero, a new blood donation drive has been scheduled in your region.</p>
+                <div style="background: #f8fafc; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0;">
+                    <p style="margin: 5px 0;"><b>Event:</b> ${data.title}</p>
+                    <p style="margin: 5px 0;"><b>Location:</b> ${data.location}, ${data.city}</p>
+                    <p style="margin: 5px 0;"><b>Date:</b> ${data.date}</p>
+                    <p style="margin: 5px 0;"><b>Time:</b> ${data.time}</p>
+                </div>
+                <p style="margin-top: 20px; text-align: center; font-weight: bold; color: #1e293b;">
+                    Join us and be the reason for someone's heartbeat. ❤️
+                </p>
+                <p style="font-size: 10px; color: #94a3b8; text-align: center; margin-top: 30px;">
+                    Check the LifeDrop app for more details and directions.
+                </p>
+            </div>
+        `;
         
-        res.status(201).json({ message: "Donation Camp Scheduled Successfully!" });
+        // Async-ah mail anupuvom (Response delay aagaama irukka)
+        sendBulkEmail(emails, `New Donation Camp: ${data.title}`, mailContent);
+        
+        res.status(201).json({ message: "Donation Camp Scheduled & Emails Dispatched!" });
     } catch (error) {
         console.error('Create Camp Error:', error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 });
+
 
 // Get All Camps
 app.get('/api/camps/all', async (req, res) => {
