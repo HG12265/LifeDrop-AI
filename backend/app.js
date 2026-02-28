@@ -826,7 +826,10 @@ app.post('/login', loginLimiter, async (req, res) => {
                     name: user.full_name,
                     email: user.email,
                     role: role,
-                    unique_id: user.unique_id
+                    unique_id: user.unique_id,
+                    bloodGroup: user.blood_group || "",
+                    community: user.community || "Public",
+                    department: user.department || ""
                 }
             };
             
@@ -1201,8 +1204,8 @@ app.get('/api/donor/profile-stats/:u_id', async (req, res) => {
             days_remaining: daysRemaining,
             is_resting: isResting,
             is_verified: donor.is_verified, 
-            community: donor.community
-            
+            community: donor.community,
+            department: donor.department
         });
     } catch (error) {
         console.error('Donor Stats Error:', error);

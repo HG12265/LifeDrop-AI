@@ -148,7 +148,7 @@ const DonorDashboard = ({ user }) => {
                 </div>
                 <div className="bg-white/5 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 text-center">
                     <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">Department</p>
-                    <p className="text-sm font-black uppercase">{user.department || "General"}</p>
+                    <p className="text-sm font-black uppercase">{stats.department || user.department || "General"}</p>
                 </div>
             </div>
             <School size={180} className="absolute right-[-40px] top-[-40px] opacity-5 -rotate-12" />
