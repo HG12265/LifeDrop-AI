@@ -9,9 +9,6 @@ const helmet = require('helmet');
 const axios = require('axios');
 const crypto = require('crypto');
 const https = require('https');
-const Tesseract = require('tesseract.js');
-const multer = require('multer');
-const upload = multer({ storage: multer.memoryStorage() });
 const { ObjectId } = mongoose.Types;
 require('dotenv').config();
 
@@ -584,42 +581,6 @@ app.post('/register/donor', async (req, res) => {
     } catch (error) {
         console.error('Donor Registration Error:', error);
         res.status(500).json({ message: "Internal Server Error" });
-    }
-});
-
-
-app.post('/api/verify-id-card', upload.single('idCard'), async (req, res) => {
-    try {
-        if (!req.file) return res.status(400).json({ message: "No image uploaded" });
-
-        console.log("🔍 Processing ID Card OCR...");
-        
-        // Tesseract OCR moolama image-la irukura text-ah edukuroam
-        const { data: { text } } = await Tesseract.recognize(req.file.buffer, 'eng');
-        const extractedText = text.toUpperCase();
-
-        // ✅ ADVANCED KEYWORD MATCHING (Based on your ID Card)
-        const requiredKeywords = ["PERIYAR", "UNIVERSITY", "SALEM"];
-        const isUniversityCard = requiredKeywords.every(key => extractedText.includes(key));
-        
-        // Role detection (Student or Staff)
-        const isStudent = extractedText.includes("STUDENT") || extractedText.includes("IDENTITY CARD");
-
-        if (isUniversityCard) {
-            return res.json({ 
-                success: true, 
-                message: "Periyar University ID Verified!",
-                detectedRole: isStudent ? "Student" : "Staff"
-            });
-        } else {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Verification Failed. Please upload a clear image of your Periyar University ID Card." 
-            });
-        }
-    } catch (error) {
-        console.error("OCR Error:", error);
-        res.status(500).json({ message: "Error processing ID card" });
     }
 });
 
