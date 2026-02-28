@@ -1200,7 +1200,9 @@ app.get('/api/donor/profile-stats/:u_id', async (req, res) => {
             is_available: donor.is_available,
             days_remaining: daysRemaining,
             is_resting: isResting,
-            fcm_token: donor.fcm_token // Include FCM token
+            is_verified: donor.is_verified, 
+            community: donor.community
+            
         });
     } catch (error) {
         console.error('Donor Stats Error:', error);

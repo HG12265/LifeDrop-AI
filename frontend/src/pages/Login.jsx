@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { API_URL } from '../config'; 
 import { useNavigate } from 'react-router-dom';
-import { LogIn, UserCircle, Heart } from 'lucide-react';
+import { LogIn, UserCircle, Heart, ArrowRight } from 'lucide-react'; // ArrowRight-ah mela seththuten
 import { toast } from 'sonner'; 
 
 const Login = ({ setUser }) => {
@@ -23,7 +23,7 @@ const Login = ({ setUser }) => {
 
       const data = await res.json();
 
-      // 2. RATE LIMIT CHECK (429 Error) - Changed to toast.error
+      // 1. RATE LIMIT CHECK (429 Error)
       if (res.status === 429) {
           toast.error(data.message); 
           setLoading(false);
@@ -31,13 +31,19 @@ const Login = ({ setUser }) => {
       }
       
       if (res.ok) {
-        setUser(data.user); 
+        // ✅ SYNCING COMMUNITY DATA: 
+        // Backend-lendhu vara unique_id, name, role, matrum community ellathaiyum save panroam
+        setUser({
+            ...data.user,
+            community: data.user.community // Intha line thaan dashboard logic-ku mukkiyam nanba
+        }); 
         
-        // 3. SUCCESS TOAST - Welcome message seththurukken
+        // Success Toast
         toast.success(`Welcome back, ${data.user.name}!`, {
             description: "Accessing your secure dashboard...",
         });
         
+        // Role-based Navigation
         if (data.user.role === 'admin') {
           navigate('/admin-dashboard');
         } else if (data.user.role === 'donor') {
@@ -46,7 +52,6 @@ const Login = ({ setUser }) => {
           navigate('/requester-dashboard');
         }
       } else {
-        // Error toast
         toast.error(data.message || "Invalid Credentials");
       }
     } catch (error) {
@@ -68,6 +73,7 @@ const Login = ({ setUser }) => {
           </div>
           <h2 className="text-3xl font-black tracking-tight italic">Welcome Back</h2>
           <p className="opacity-70 text-[10px] font-black mt-1 uppercase tracking-[0.2em]">LifeDrop Secure Access</p>
+          <div className="absolute top-[-10px] right-[-10px] w-20 h-20 bg-white/10 rounded-full blur-2xl"></div>
         </div>
 
         <div className="p-8">
@@ -111,6 +117,7 @@ const Login = ({ setUser }) => {
                 required 
               />
             </div>
+
             <div className="text-right mt-1">
               <span 
                 onClick={() => navigate('/forgot-password')} 
@@ -125,8 +132,17 @@ const Login = ({ setUser }) => {
               disabled={loading}
               className={`w-full bg-red-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-red-100 hover:bg-red-700 transition mt-6 active:scale-95 flex items-center justify-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {loading ? "AUTHENTICATING..." : "LOGIN TO DASHBOARD"}
-              {!loading && <ArrowRight size={20} />}
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  AUTHENTICATING...
+                </div>
+              ) : (
+                <>
+                  LOGIN TO DASHBOARD
+                  <ArrowRight size={20} />
+                </>
+              )}
             </button>
           </form>
           
@@ -141,9 +157,5 @@ const Login = ({ setUser }) => {
     </div>
   );
 };
-
-const ArrowRight = ({size}) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-);
 
 export default Login;

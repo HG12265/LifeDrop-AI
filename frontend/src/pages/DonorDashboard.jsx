@@ -7,7 +7,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import { 
   Bell, Phone, Droplet, User, CheckCircle, 
   XCircle, Package, ShieldCheck, Clock, Award, 
-  Tent, MapPin, Calendar, Link2, Activity, Settings, School
+  Tent, MapPin, Calendar, Link2, Activity, Settings, School, ShieldAlert
 } from 'lucide-react';
 
 import { generateCertificate } from '../utils/CertificateGenerator';
@@ -16,7 +16,13 @@ const DonorDashboard = ({ user }) => {
   const navigate = useNavigate(); 
   const [notifications, setNotifications] = useState([]);
   const [bagId, setBagId] = useState("");
-  const [stats, setStats] = useState({ donation_count: 0, is_available: true, days_remaining: 0 });
+  const [stats, setStats] = useState({ 
+    donation_count: 0, 
+    is_available: true, 
+    days_remaining: 0,
+    is_verified: false,
+    community: 'Public'
+  });
   const [camps, setCamps] = useState([]); 
   const [isToggling, setIsToggling] = useState(false);
 
@@ -127,45 +133,66 @@ const DonorDashboard = ({ user }) => {
         onCancel={() => setShowDonateModal(false)}
       />
 
-      {/* --- UNIVERSITY BRANDING BANNER --- */}
-      {user.community === "Periyar University" && (
+      {/* --- 1. UNIVERSITY BRANDING BANNER --- */}
+      {stats.community === "Periyar University" && (
         <div className="bg-slate-900 text-white p-8 rounded-[40px] mb-10 relative overflow-hidden border-b-8 border-red-600 shadow-2xl">
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-5">
-                <div className="bg-red-600 p-4 rounded-[24px] shadow-xl shadow-red-900/20">
-                <School size={32} className="text-white" />
+                <div className="flex items-center gap-5">
+                    <div className="bg-red-600 p-4 rounded-[24px] shadow-xl shadow-red-900/20">
+                        <School size={32} className="text-white" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-black italic tracking-tighter uppercase">Periyar University Circle</h2>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-1 italic">Verified Institutional Member</p>
+                    </div>
                 </div>
-                <div>
-                <h2 className="text-2xl font-black italic tracking-tighter uppercase">Periyar University Circle</h2>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-1">Verified Institutional Member</p>
+                <div className="bg-white/5 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 text-center">
+                    <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">Department</p>
+                    <p className="text-sm font-black uppercase">{user.department || "General"}</p>
                 </div>
-            </div>
-            <div className="bg-white/5 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 text-center">
-                <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">Department</p>
-                <p className="text-sm font-black uppercase">{user.department || "General"}</p>
-            </div>
             </div>
             <School size={180} className="absolute right-[-40px] top-[-40px] opacity-5 -rotate-12" />
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* --- LEFT COLUMN: PROFILE & STATS --- */}
-        <div className="lg:col-span-1 space-y-6">
+      {/* --- 2. MAIN DASHBOARD GRID --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        
+        {/* --- LEFT COLUMN: PROFILE CARD (Sticky on Desktop) --- */}
+        <div className="lg:col-span-1 lg:sticky lg:top-28 space-y-6">
             <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-xl text-center relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div>
+                
+                {/* Settings Button */}
                 <button 
                   onClick={() => navigate('/edit-profile')}
-                  className="absolute top-6 right-6 p-2.5 bg-slate-50 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all duration-300 shadow-sm border border-slate-100 group"
-                  title="Account Settings"
+                  className="absolute top-6 right-6 p-2.5 bg-slate-50 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-300 group border border-slate-100"
                 >
                   <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
                 </button>
+
                 <div className="bg-slate-50 w-24 h-24 rounded-full mx-auto flex items-center justify-center text-red-600 mb-4 shadow-inner border-4 border-white">
                     <User size={48} />
                 </div>
-                <h2 className="text-3xl font-black text-gray-800 tracking-tighter">{user.name}</h2>
-                <p className="text-red-600 font-black text-xs uppercase tracking-widest italic">#{user.unique_id}</p>
+
+                <h2 className="text-3xl font-black text-gray-800 tracking-tighter leading-none">{user.name}</h2>
+                <p className="text-red-600 font-black text-xs uppercase tracking-widest italic mt-2">#{user.unique_id}</p>
+
+                {/* ✅ UNIVERSITY VERIFICATION STATUS */}
+                {stats.community === "Periyar University" && (
+                    <div className="mt-4 flex flex-col items-center gap-2">
+                        <div className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full border transition-all duration-500 ${
+                            stats.is_verified 
+                            ? 'bg-green-50 border-green-100 text-green-600' 
+                            : 'bg-orange-50 border-orange-100 text-orange-600 animate-pulse'
+                        }`}>
+                            {stats.is_verified ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
+                            <span className="text-[9px] font-black uppercase tracking-widest">
+                                {stats.is_verified ? 'Verified Donor' : 'Verification Pending'}
+                            </span>
+                        </div>
+                    </div>
+                )}
                 
                 <div className="mt-8 flex flex-col items-center bg-gray-50 p-6 rounded-[32px] border-2 border-dashed border-gray-200">
                     <QRCodeCanvas value={profileUrl} size={140} level={"H"} />
@@ -196,7 +223,7 @@ const DonorDashboard = ({ user }) => {
                     </button>
                 </div>
 
-                {/* --- COOLDOWN INDICATOR FIX --- */}
+                {/* --- COOLDOWN INDICATOR --- */}
                 {stats.days_remaining > 0 && (
                     <div className="mt-6 bg-slate-900 text-white p-6 rounded-[32px] text-left relative overflow-hidden shadow-2xl animate-in zoom-in">
                         <Clock className="absolute right-[-10px] bottom-[-10px] opacity-10" size={80} />
@@ -233,7 +260,7 @@ const DonorDashboard = ({ user }) => {
                     <div className="flex justify-between items-start mb-6">
                         <div>
                             <span className="bg-red-100 text-red-600 text-[9px] px-3 py-1 rounded-full font-black uppercase tracking-widest italic">Personal Request</span>
-                            <h4 className="text-2xl font-black text-gray-800 mt-2 italic">Needs {note.blood} Blood</h4>
+                            <h4 className="text-2xl font-black text-gray-800 mt-2 italic leading-tight">Needs {note.blood} Blood</h4>
                             <p className="text-gray-500 font-bold text-sm mt-1">{note.patient} @ {note.hospital}</p>
                         </div>
                         <div className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border ${
@@ -331,7 +358,7 @@ const DonorDashboard = ({ user }) => {
         </div>
       </div>
 
-      {/* --- BOTTOM SECTION: CAMPS --- */}
+      {/* --- 3. BOTTOM SECTION: CAMPS --- */}
       {camps.length > 0 && (
         <div className="pt-10 border-t border-gray-100">
           <div className="flex items-center gap-3 mb-8 px-2">
