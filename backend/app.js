@@ -656,14 +656,27 @@ app.get('/api/admin/pending-verifications', async (req, res) => {
     }
 });
 
-// 2. Approve a Donor
+// app.js kulla approve-donor route-ah update pannunga
 app.post('/api/admin/approve-donor/:u_id', async (req, res) => {
     try {
         const { u_id } = req.params;
-        await Donor.updateOne({ unique_id: u_id }, { $set: { is_verified: true } });
-        
-        // Optional: Send a broadcast or email to donor that they are verified
-        res.json({ success: true, message: "Donor verified successfully!" });
+
+        // ✅ UPDATE LOGIC: Verify pannittu image-ah thookiduroam
+        const result = await Donor.updateOne(
+            { unique_id: u_id }, 
+            { 
+                $set: { 
+                    is_verified: true,
+                    id_card_image: null // 🗑️ Image deleted from DB to save space & privacy
+                } 
+            }
+        );
+
+        if (result.matchedCount > 0) {
+            res.json({ success: true, message: "Donor Verified & ID Image Purged for Privacy!" });
+        } else {
+            res.status(404).json({ message: "Donor not found" });
+        }
     } catch (error) {
         res.status(500).json({ message: "Approval failed" });
     }
