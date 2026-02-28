@@ -13,7 +13,7 @@ const { ObjectId } = mongoose.Types;
 require('dotenv').config();
 
 const app = express();
-
+app.set('trust proxy', 1);
 // ==================== CONFIGURATION ====================
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGODB_URI;
