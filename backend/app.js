@@ -24,8 +24,8 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemi
 const SECRET_KEY = process.env.SECRET_KEY || 'lifedrop-super-secret-key-2024';
 
 // ==================== MIDDLEWARE ====================
-app.use(express.json({ limit: '10mb' })); // 10MB varaikkum allow pannum
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '50mb' })); 
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({
     origin: [
     "http://localhost:5173",
@@ -37,6 +37,15 @@ app.use(cors({
 app.use(helmet({
     contentSecurityPolicy: false
 }));
+
+
+app.use((req, res, next) => {
+    if (req.method === 'POST') {
+        console.log(`📥 Incoming POST Request: ${req.url}`);
+        console.log(`📦 Payload Size: ${Math.round(JSON.stringify(req.body).length / 1024)} KB`);
+    }
+    next();
+});
 
 // Session configuration
 app.use(session({
@@ -661,37 +670,42 @@ app.post('/api/admin/approve-donor/:u_id', async (req, res) => {
 });
 
 app.post('/api/verify-id-gemini', async (req, res) => {
+    console.log("🤖 Gemini Verification Started...");
     try {
-        const { imageBase64 } = req.body; // Frontend-lendhu base64 image varum
+        let { imageBase64 } = req.body;
+        if (!imageBase64) return res.status(400).json({ message: "No image data received" });
 
-        const prompt = `
-        Analyze this ID card image. 
-        1. Does it belong to 'Periyar University, Salem'? 
-        2. Is it a 'Student' or 'Staff' card?
-        Answer ONLY in this JSON format: {"is_valid": true, "role": "Student"}.
-        If it's not a Periyar University card, set is_valid to false.
-        `;
+        if (imageBase64.includes(',')) {
+            imageBase64 = imageBase64.split(',')[1];
+        }
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: prompt },
+                    { text: "Analyze this ID card. Is it from 'Periyar University, Salem'? Answer ONLY in JSON: {'is_valid': true/false, 'role': 'Student/Staff'}" },
                     { inline_data: { mime_type: "image/jpeg", data: imageBase64 } }
                 ]
             }]
         };
 
-        const response = await axios.post(GEMINI_URL, payload);
-        const resultText = response.data.candidates[0].content.parts[0].text;
+        const response = await axios.post(GEMINI_URL, payload, { timeout: 30000 });
         
-        // Clean the response (Gemini sometimes adds markdown ```json)
+        // Response check
+        if (!response.data.candidates || !response.data.candidates[0]) {
+            console.log("❌ Gemini returned empty response");
+            return res.status(500).json({ is_valid: false, message: "AI Busy. Try again." });
+        }
+
+        const resultText = response.data.candidates[0].content.parts[0].text;
         const cleanJson = resultText.replace(/```json|```/g, "").trim();
         const result = JSON.parse(cleanJson);
 
+        console.log("✅ Gemini Result:", result);
         res.json(result);
+
     } catch (error) {
-        console.error("Gemini Error:", error);
-        res.status(500).json({ message: "AI Verification failed" });
+        console.error("🚨 Gemini Route Error:", error.message);
+        res.status(500).json({ message: "AI Verification failed", error: error.message });
     }
 });
 // Send OTP - FIXED VERSION
