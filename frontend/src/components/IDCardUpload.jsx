@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UploadCloud, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
-import Tesseract from 'tesseract.js'; // Frontend OCR
+import { createWorker } from 'tesseract.js'; // Changed import for better control
 import { toast } from 'sonner';
 
 const IDCardUpload = ({ onVerified }) => {
@@ -16,25 +16,27 @@ const IDCardUpload = ({ onVerified }) => {
     setProgress(0);
 
     try {
-      // Tesseract Frontend Processing
-      const result = await Tesseract.recognize(
-        file,
-        'eng',
-        { logger: m => {
-            if(m.status === 'recognizing text') {
-                setProgress(Math.round(m.progress * 100));
-            }
-          } 
+      // 1. Create Worker
+      const worker = await createWorker('eng', 1, {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            setProgress(Math.round(m.progress * 100));
+          }
         }
-      );
+      });
 
-      const extractedText = result.data.text.toUpperCase();
+      // 2. Recognize Text
+      const { data: { text } } = await worker.recognize(file);
+      const extractedText = text.toUpperCase();
+      
+      // 3. Terminate Worker (Memory save panna)
+      await worker.terminate();
+
       console.log("Extracted Text:", extractedText);
 
-      // ✅ KEYWORD MATCHING (Based on your Periyar University ID)
+      // ✅ KEYWORD MATCHING
       const keywords = ["PERIYAR", "UNIVERSITY", "SALEM"];
       const isMatched = keywords.every(key => extractedText.includes(key));
-      
       const isStudent = extractedText.includes("STUDENT") || extractedText.includes("IDENTITY");
 
       if (isMatched) {
@@ -42,11 +44,11 @@ const IDCardUpload = ({ onVerified }) => {
         toast.success("Periyar University ID Verified!");
         onVerified(isStudent ? "Student" : "Staff");
       } else {
-        toast.error("Invalid ID Card. Please upload a clear image of your Periyar University ID.");
+        toast.error("Invalid ID Card. Please ensure 'Periyar University' is clearly visible.");
       }
     } catch (err) {
-      console.error(err);
-      toast.error("OCR Processing failed. Try a clearer photo.");
+      console.error("OCR Error:", err);
+      toast.error("AI Scanning failed. Please use a clearer photo.");
     } finally {
       setLoading(false);
     }
@@ -95,7 +97,7 @@ const IDCardUpload = ({ onVerified }) => {
           )}
           
           <p className="text-[9px] text-slate-400 font-bold italic flex items-center justify-center gap-1">
-            <AlertCircle size={10}/> Image is processed locally for privacy.
+            <AlertCircle size={10}/> Processed locally on your device.
           </p>
         </div>
       )}

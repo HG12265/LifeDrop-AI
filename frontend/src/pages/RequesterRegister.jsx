@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { API_URL } from '../config'; 
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { createWorker } from 'tesseract.js'; // ✅ Frontend OCR
 import { 
   User, Mail, Phone, Lock, ShieldAlert, ArrowRight, 
-  UserPlus, ShieldCheck, School, UploadCloud, Loader2, CheckCircle2 
+  UserPlus, ShieldCheck, School, UploadCloud, Loader2, CheckCircle2, AlertCircle 
 } from 'lucide-react';
 import OTPModal from '../components/OTPModal';
 
@@ -24,31 +25,50 @@ const RequesterRegister = () => {
   const [idFile, setIdFile] = useState(null);
   const [isIdVerified, setIsIdVerified] = useState(false);
   const [verifyingId, setVerifyingId] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
 
-  // --- OCR ID VERIFICATION LOGIC ---
+  // --- ✅ NEW: FRONTEND OCR VERIFICATION LOGIC ---
   const handleIdVerify = async () => {
     if (!idFile) return toast.error("Please select your ID card image first");
     
     setVerifyingId(true);
-    const data = new FormData();
-    data.append('idCard', idFile);
+    setOcrProgress(0);
 
     try {
-      const res = await fetch(`${API_URL}/api/verify-id-card`, {
-        method: 'POST',
-        body: data
+      // 1. Create Tesseract Worker
+      const worker = await createWorker('eng', 1, {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            setOcrProgress(Math.round(m.progress * 100));
+          }
+        }
       });
-      const result = await res.json();
 
-      if (res.ok && result.success) {
+      // 2. Perform OCR
+      const { data: { text } } = await worker.recognize(idFile);
+      const extractedText = text.toUpperCase();
+      
+      // 3. Clean up worker
+      await worker.terminate();
+
+      console.log("Extracted Text:", extractedText);
+
+      // 4. Keyword Matching (Based on your Periyar University ID)
+      const keywords = ["PERIYAR", "UNIVERSITY", "SALEM"];
+      const isMatched = keywords.every(key => extractedText.includes(key));
+      
+      const isStudent = extractedText.includes("STUDENT") || extractedText.includes("IDENTITY");
+
+      if (isMatched) {
         setIsIdVerified(true);
-        setFormData(prev => ({ ...prev, roleType: result.detectedRole }));
-        toast.success("Periyar University ID Verified Successfully!");
+        setFormData(prev => ({ ...prev, roleType: isStudent ? "Student" : "Staff" }));
+        toast.success("Periyar University ID Verified Locally! ✅");
       } else {
-        toast.error(result.message || "Invalid ID Card. Please upload a clear image.");
+        toast.error("Invalid ID Card. Please ensure 'Periyar University' is clearly visible.");
       }
     } catch (err) {
-      toast.error("OCR Server Error. Please try again.");
+      console.error("OCR Error:", err);
+      toast.error("AI Scanning failed. Please use a clearer photo.");
     } finally {
       setVerifyingId(false);
     }
@@ -106,13 +126,9 @@ const RequesterRegister = () => {
         navigate('/login');
       } else {
         toast.error(data.message || "Registration failed.");
-        throw new Error(data.message || "Registration failed");
       }
     } catch (err) {
-      if (err.message !== "Registration failed") {
-        toast.error("Registration error. Try again.");
-      }
-      throw err; 
+      toast.error("Registration error. Try again.");
     } finally {
       setLoading(false);
     }
@@ -207,9 +223,20 @@ const RequesterRegister = () => {
                                 <label htmlFor="id-upload" className="cursor-pointer bg-indigo-100 text-indigo-600 px-6 py-2 rounded-full font-black text-[10px] hover:bg-indigo-200 transition">
                                     {idFile ? idFile.name : "SELECT IMAGE"}
                                 </label>
-                                <button type="button" onClick={handleIdVerify} disabled={verifyingId || !idFile} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-100">
-                                    {verifyingId ? <Loader2 className="animate-spin" size={16}/> : "START AI VERIFICATION"}
-                                </button>
+                                
+                                {verifyingId ? (
+                                    <div className="w-full space-y-2">
+                                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                            <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${ocrProgress}%` }}></div>
+                                        </div>
+                                        <p className="text-[9px] font-black text-indigo-600 animate-pulse uppercase">AI Scanning: {ocrProgress}%</p>
+                                    </div>
+                                ) : (
+                                    <button type="button" onClick={handleIdVerify} disabled={!idFile} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 active:scale-95 disabled:opacity-50">
+                                        START AI VERIFICATION
+                                    </button>
+                                )}
+                                <p className="text-[8px] text-slate-400 italic font-bold"><AlertCircle size={8} className="inline mr-1"/> Processed locally for privacy</p>
                             </>
                         )}
                     </div>
@@ -278,7 +305,7 @@ const RequesterRegister = () => {
                 disabled={loading}
                 className="w-full bg-red-600 text-white py-6 rounded-[28px] font-black text-xl shadow-xl shadow-red-100 hover:bg-red-700 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
             >
-              {loading ? <div className="flex items-center gap-2"><Loader2 className="animate-spin" size={20}/> SENDING VERIFICATION...</div> : <><ArrowRight size={24}/> VERIFY & SIGN UP</>}
+              {loading ? <div className="flex items-center gap-2"><Loader2 className="animate-spin" size={20}/> PROCESSING...</div> : <><ArrowRight size={24}/> VERIFY & SIGN UP</>}
             </button>
 
             <p className="text-center text-xs text-gray-400 font-bold uppercase tracking-widest">

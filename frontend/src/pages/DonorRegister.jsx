@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { API_URL } from '../config'; 
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { createWorker } from 'tesseract.js'; // ✅ Frontend OCR
 import LocationPicker from '../components/LocationPicker';
 import SuccessModal from '../components/SuccessModal';
 import OTPModal from '../components/OTPModal'; 
 import { 
   Activity, ShieldCheck, ShieldAlert, User, Mail, 
   Phone, Lock, Calendar, Droplet, ArrowRight, UserPlus,
-  School, UploadCloud, Loader2, CheckCircle2
+  School, UploadCloud, Loader2, CheckCircle2, AlertCircle
 } from 'lucide-react';
 
 const DonorRegister = () => {
@@ -25,6 +26,7 @@ const DonorRegister = () => {
   const [idFile, setIdFile] = useState(null);
   const [isIdVerified, setIsIdVerified] = useState(false);
   const [verifyingId, setVerifyingId] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
 
   // --- MAP & HEALTH STATES ---
   const [position, setPosition] = useState({ lat: 13.0827, lng: 80.2707 });
@@ -47,30 +49,48 @@ const DonorRegister = () => {
     setHealthScore(score < 0 ? 0 : score);
   }, [formData]);
 
-  // --- OCR ID VERIFICATION LOGIC ---
+  // --- ✅ NEW: FRONTEND OCR VERIFICATION LOGIC ---
   const handleIdVerify = async () => {
     if (!idFile) return toast.error("Please select your ID card image first");
     
     setVerifyingId(true);
-    const data = new FormData();
-    data.append('idCard', idFile);
+    setOcrProgress(0);
 
     try {
-      const res = await fetch(`${API_URL}/api/verify-id-card`, {
-        method: 'POST',
-        body: data
+      // 1. Create Tesseract Worker
+      const worker = await createWorker('eng', 1, {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            setOcrProgress(Math.round(m.progress * 100));
+          }
+        }
       });
-      const result = await res.json();
 
-      if (res.ok && result.success) {
+      // 2. Perform OCR
+      const { data: { text } } = await worker.recognize(idFile);
+      const extractedText = text.toUpperCase();
+      
+      // 3. Clean up worker
+      await worker.terminate();
+
+      console.log("Extracted Text:", extractedText);
+
+      // 4. Keyword Matching (Based on your Periyar University ID)
+      const keywords = ["PERIYAR", "UNIVERSITY", "SALEM"];
+      const isMatched = keywords.every(key => extractedText.includes(key));
+      
+      const isStudent = extractedText.includes("STUDENT") || extractedText.includes("IDENTITY");
+
+      if (isMatched) {
         setIsIdVerified(true);
-        setFormData(prev => ({ ...prev, roleType: result.detectedRole }));
-        toast.success("Periyar University ID Verified Successfully!");
+        setFormData(prev => ({ ...prev, roleType: isStudent ? "Student" : "Staff" }));
+        toast.success("Periyar University ID Verified Locally! ✅");
       } else {
-        toast.error(result.message || "Invalid ID Card. Please upload a clear image.");
+        toast.error("Invalid ID Card. Please ensure 'Periyar University' is clearly visible.");
       }
     } catch (err) {
-      toast.error("OCR Server Error. Please try again.");
+      console.error("OCR Error:", err);
+      toast.error("AI Scanning failed. Please use a clearer photo.");
     } finally {
       setVerifyingId(false);
     }
@@ -80,7 +100,6 @@ const DonorRegister = () => {
   const handleInitialSubmit = async (e) => {
     e.preventDefault();
     
-    // Gatekeeper: University members must verify ID first
     if (community === 'Periyar University' && !isIdVerified) {
         return toast.error("Please verify your University ID card to proceed.");
     }
@@ -132,7 +151,6 @@ const DonorRegister = () => {
       }
     } catch (err) {
       toast.error("Registration error.");
-      throw err;
     } finally {
       setLoading(false);
     }
@@ -225,9 +243,20 @@ const DonorRegister = () => {
                                 <label htmlFor="id-upload" className="cursor-pointer bg-indigo-100 text-indigo-600 px-6 py-2 rounded-full font-black text-[10px] hover:bg-indigo-200 transition">
                                     {idFile ? idFile.name : "SELECT IMAGE"}
                                 </label>
-                                <button type="button" onClick={handleIdVerify} disabled={verifyingId || !idFile} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-100">
-                                    {verifyingId ? <Loader2 className="animate-spin" size={16}/> : "START AI VERIFICATION"}
-                                </button>
+                                
+                                {verifyingId ? (
+                                    <div className="w-full space-y-2">
+                                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                            <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${ocrProgress}%` }}></div>
+                                        </div>
+                                        <p className="text-[9px] font-black text-indigo-600 animate-pulse uppercase">AI Scanning: {ocrProgress}%</p>
+                                    </div>
+                                ) : (
+                                    <button type="button" onClick={handleIdVerify} disabled={!idFile} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 active:scale-95 disabled:opacity-50">
+                                        START AI VERIFICATION
+                                    </button>
+                                )}
+                                <p className="text-[8px] text-slate-400 italic font-bold"><AlertCircle size={8} className="inline mr-1"/> Processed locally for privacy</p>
                             </>
                         )}
                     </div>
@@ -242,35 +271,35 @@ const DonorRegister = () => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Full Name</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><User size={10}/> Full Name</label>
                   <div className="relative group">
                     <User className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="text" placeholder="Your Name" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, fullName: e.target.value})} required />
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Phone Number</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Phone size={10}/> Phone Number</label>
                   <div className="relative group">
                     <Phone className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="tel" placeholder="+91" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, phone: e.target.value})} required />
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Email Address</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Mail size={10}/> Email Address</label>
                   <div className="relative group">
                     <Mail className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="email" placeholder="mail@example.com" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, email: e.target.value})} required />
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Security Password</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Lock size={10}/> Security Password</label>
                   <div className="relative group">
                     <Lock className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="password" placeholder="••••••••" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, password: e.target.value})} required />
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Blood Group</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Droplet size={10}/> Blood Group</label>
                   <div className="relative group">
                     <Droplet className="absolute left-4 top-4 text-red-500 transition-colors" size={18}/>
                     <select className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 appearance-none cursor-pointer transition-all shadow-inner" onChange={e => setFormData({...formData, bloodGroup: e.target.value})} required>
@@ -280,7 +309,7 @@ const DonorRegister = () => {
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Date of Birth</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Calendar size={10}/> Date of Birth</label>
                   <div className="relative group">
                     <Calendar className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="date" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-400 transition-all shadow-inner cursor-pointer" onChange={e => setFormData({...formData, dob: e.target.value})} required />
