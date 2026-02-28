@@ -1962,6 +1962,71 @@ app.post('/api/contact', async (req, res) => {
     }
 });
 
+// 1. Get All University Donors (Detailed)
+app.get('/api/admin/university/donors', async (req, res) => {
+    try {
+        const donors = await Donor.find({ community: "Periyar University" });
+        res.json(donors.map(d => ({
+            name: d.full_name,
+            email: d.email,
+            phone: d.phone,
+            blood: d.blood_group,
+            dept: d.department,
+            role: d.role_type,
+            year: d.year || "N/A",
+            status: d.is_verified ? "Verified" : "Pending",
+            donations: d.donation_count,
+            health: d.health_score,
+            location: `${d.lat.toFixed(2)}, ${d.lng.toFixed(2)}`
+        })));
+    } catch (error) { res.status(500).json({ message: "Error" }); }
+});
+
+// 2. Get All University Requesters
+app.get('/api/admin/university/requesters', async (req, res) => {
+    try {
+        const reqs = await Requester.find({ community: "Periyar University" });
+        res.json(reqs.map(r => ({
+            name: r.full_name,
+            email: r.email,
+            phone: r.phone,
+            dept: r.department,
+            role: r.role_type,
+            year: r.year || "N/A"
+        })));
+    } catch (error) { res.status(500).json({ message: "Error" }); }
+});
+
+// 3. Get University-Only Donation History
+app.get('/api/admin/university/history', async (req, res) => {
+    try {
+        const requests = await BloodRequest.find({ status: 'Completed' }).sort({ timestamp: -1 });
+        const output = [];
+
+        for (let r of requests) {
+            const requester = await Requester.findOne({ unique_id: r.requester_id });
+            // Only pick if requester is from University
+            if (requester && requester.community === "Periyar University") {
+                const notif = await Notification.findOne({ request_id: r._id, status: 'Completed' });
+                const donor = notif ? await Donor.findOne({ unique_id: notif.donor_id }) : null;
+
+                output.push({
+                    id: r._id.toString(),
+                    patient: r.patient_name,
+                    blood: r.blood_group,
+                    hospital: r.hospital,
+                    date: r.timestamp.toLocaleDateString('en-GB'),
+                    requester_name: requester.full_name,
+                    requester_phone: requester.phone,
+                    donor_name: donor ? donor.full_name : "N/A",
+                    donor_phone: donor ? donor.phone : "N/A"
+                });
+            }
+        }
+        res.json(output);
+    } catch (error) { res.status(500).json({ message: "Error" }); }
+});
+
 // Force Inventory Init (Admin)
 app.get('/api/admin/force-inventory', async (req, res) => {
     try {

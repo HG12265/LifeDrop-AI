@@ -195,9 +195,11 @@ const AdminDashboard = () => {
         
         {/* ✅ NEW: UNIVERSITY VERIFICATION CARD */}
         <AdminCard 
-          label="University Audit" value="Verify" 
-          icon={<School size={24}/>} color="bg-indigo-600" 
-          onClick={() => navigate('/admin/verifications')} 
+          label="University Dashboard" 
+          value="PU Salem" 
+          icon={<School size={24}/>} 
+          color="bg-indigo-900" 
+          onClick={() => navigate('/admin/university-dashboard')} 
         />
 
         <AdminCard 

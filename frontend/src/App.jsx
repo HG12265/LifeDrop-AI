@@ -27,6 +27,8 @@ import BlockchainView from './pages/BlockchainView';
 import Contact from './pages/Contact';
 import ForgotPassword from './pages/ForgotPassword';
 import EditProfile from './pages/EditProfile';
+import UniversityDashboard from './pages/UniversityDashboard';
+import UniversityDetails from './pages/UniversityDetails';
 
 function App() {
   // --- User Session Logic (LocalStorage Sync) ---
@@ -137,6 +139,8 @@ function App() {
               path="/admin/camps" 
               element={user && user.role === 'admin' ? <CampManager /> : <Navigate to="/login" />} 
             />
+            <Route path="/admin/university-dashboard" element={user?.role === 'admin' ? <UniversityDashboard /> : <Navigate to="/login" />} />
+            <Route path="/admin/university/details/:type" element={user?.role === 'admin' ? <UniversityDetails /> : <Navigate to="/login" />} />
             <Route 
               path="/admin/verifications" 
               element={user?.role === 'admin' ? <AdminVerification /> : <Navigate to="/login" />} 
