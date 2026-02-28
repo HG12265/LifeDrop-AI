@@ -50,30 +50,32 @@ const RequesterRegister = () => {
 
   // --- ✅ STEP 1: GEMINI AI ID VERIFICATION (Backend Call) ---
   const handleAiVerify = async () => {
-    if (!idFile) return toast.error("Please select your ID card image first");
-    
+    if (!idFile) return toast.error("Please select ID card image first");
+  
     setVerifyingId(true);
     try {
-      const base64Full = await convertToBase64(idFile);
-      const base64Data = base64Full.split(',')[1]; // Get raw base64 string
+    // ✅ FIX: idFile already base64-ah thaan varum. 
+    // So split(',') mattum panna podhum.
+      const base64Data = idFile.split(',')[1]; 
 
       const res = await fetch(`${API_URL}/api/verify-id-gemini`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: base64Data })
       });
-      
-      const data = await res.json();
+    
+      const result = await res.json();
 
-      if (res.ok && data.is_valid) {
+      if (res.ok && result.is_valid) {
         setIsIdVerified(true);
-        setFormData(prev => ({ ...prev, roleType: data.role || "Student" }));
-        toast.success("AI Verified: Periyar University Member! ✅");
+        setFormData(prev => ({ ...prev, roleType: result.role || "Student" }));
+        toast.success("AI Verified Successfully! ✅");
       } else {
-        toast.error("AI could not verify this ID. Please upload a clearer photo of your Periyar University ID.");
+        toast.error(result.message || "AI could not verify this ID.");
       }
     } catch (err) {
-      toast.error("AI Verification service error. Try again.");
+      console.error("AI Verification Error:", err);
+      toast.error("AI Service Error: " + err.message);
     } finally {
       setVerifyingId(false);
     }

@@ -5,10 +5,11 @@ import { toast } from 'sonner';
 import LocationPicker from '../components/LocationPicker';
 import SuccessModal from '../components/SuccessModal';
 import OTPModal from '../components/OTPModal'; 
+import IDCardUpload from '../components/IDCardUpload'; // ✅ PUDHU IMPORT
 import { 
   Activity, ShieldCheck, ShieldAlert, User, Mail, 
   Phone, Lock, Calendar, Droplet, ArrowRight, UserPlus,
-  School, UploadCloud, Loader2, CheckCircle2, XCircle
+  School, Loader2
 } from 'lucide-react';
 
 const DonorRegister = () => {
@@ -22,8 +23,7 @@ const DonorRegister = () => {
 
   // --- UNIVERSITY / COMMUNITY STATES ---
   const [community, setCommunity] = useState('Public');
-  const [idFile, setIdFile] = useState(null);
-  const [idPreview, setIdPreview] = useState(null);
+  const [idFile, setIdFile] = useState(null); // ✅ Inga thaan compressed image store aagum
 
   // --- MAP & HEALTH STATES ---
   const [position, setPosition] = useState({ lat: 13.0827, lng: 80.2707 });
@@ -46,31 +46,11 @@ const DonorRegister = () => {
     setHealthScore(score < 0 ? 0 : score);
   }, [formData]);
 
-  // Helper: Handle Image Selection & Preview
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setIdFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setIdPreview(reader.result);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Helper: Convert File to Base64 for Backend
-  const convertToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
   // STEP 1: Initial Submit (Sends OTP)
   const handleInitialSubmit = async (e) => {
     e.preventDefault();
     
+    // Validation for University Members
     if (community === 'Periyar University' && !idFile) {
         return toast.error("Please upload your University ID card for verification.");
     }
@@ -96,23 +76,20 @@ const DonorRegister = () => {
     }
   };
 
-  // STEP 2: Final Registration (After OTP Success)
+  // STEP 2: Final Registration (Runs after OTP Success)
   const finalizeRegistration = async () => {
     setLoading(true);
     try {
-      let base64Image = null;
-      if (idFile) {
-        base64Image = await convertToBase64(idFile);
-      }
-
       const finalData = {
         ...formData,
         community: community,
-        id_card_image: base64Image,
+        id_card_image: idFile, // ✅ idFile ippo direct-ah compressed base64 string-ah irukkum
         lat: position.lat,
         lng: position.lng,
         healthScore: healthScore
       };
+
+      console.log("📤 Sending Registration Data to Backend...");
 
       const res = await fetch(`${API_URL}/register/donor`, {
         method: 'POST',
@@ -129,6 +106,7 @@ const DonorRegister = () => {
         toast.error(data.message || "Registration failed.");
       }
     } catch (err) {
+      console.error("Frontend Error:", err);
       toast.error("Registration error. Please try again.");
     } finally {
       setLoading(false);
@@ -167,7 +145,7 @@ const DonorRegister = () => {
             </label>
             <select 
                 className="w-full p-5 bg-slate-50 rounded-[24px] border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-black text-slate-700 transition-all shadow-inner"
-                onChange={(e) => { setCommunity(e.target.value); setIdFile(null); setIdPreview(null); }}
+                onChange={(e) => setCommunity(e.target.value)}
                 value={community}
             >
                 <option value="Public">Public (General)</option>
@@ -205,33 +183,11 @@ const DonorRegister = () => {
                         </div>
                     </div>
 
-                    {/* ID CARD UPLOAD BOX */}
-                    <div className="p-6 rounded-[32px] border-2 border-dashed border-indigo-200 bg-white flex flex-col items-center justify-center text-center gap-4">
-                        {idPreview ? (
-                            <div className="relative group w-full h-40">
-                                <img src={idPreview} alt="ID Preview" className="w-full h-full object-contain rounded-xl" />
-                                <button 
-                                    type="button" 
-                                    onClick={() => {setIdFile(null); setIdPreview(null);}}
-                                    className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                    <XCircle size={16} />
-                                </button>
-                            </div>
-                        ) : (
-                            <>
-                                <UploadCloud size={40} className="text-indigo-300" />
-                                <div className="space-y-1">
-                                    <p className="text-xs font-black text-indigo-900 uppercase">Upload ID Card</p>
-                                    <p className="text-[9px] text-indigo-400 font-bold uppercase">Admin will verify your identity</p>
-                                </div>
-                                <input type="file" accept="image/*" className="hidden" id="id-upload" onChange={handleFileChange} />
-                                <label htmlFor="id-upload" className="cursor-pointer bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] tracking-widest hover:bg-indigo-700 transition shadow-lg shadow-indigo-100">
-                                    SELECT IMAGE
-                                </label>
-                            </>
-                        )}
-                    </div>
+                    {/* ✅ INTEGRATED ID CARD UPLOAD COMPONENT */}
+                    <IDCardUpload 
+                        mode="admin" 
+                        onImageSelect={(base64) => setIdFile(base64)} 
+                    />
                 </div>
             </div>
           )}
@@ -290,9 +246,8 @@ const DonorRegister = () => {
             </div>
           </div>
 
-          {/* MAIN GRID: Desktop 2 Columns (Left: Map, Right: Health) */}
+          {/* MAIN GRID: Desktop 2 Columns */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            
             {/* LEFT: Location & Legal */}
             <div className="space-y-8 flex flex-col h-full">
                <div className="flex-1">
