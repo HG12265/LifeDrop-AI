@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { API_URL } from '../config'; 
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { createWorker } from 'tesseract.js'; // ✅ Frontend OCR
 import LocationPicker from '../components/LocationPicker';
 import SuccessModal from '../components/SuccessModal';
 import OTPModal from '../components/OTPModal'; 
 import { 
   Activity, ShieldCheck, ShieldAlert, User, Mail, 
   Phone, Lock, Calendar, Droplet, ArrowRight, UserPlus,
-  School, UploadCloud, Loader2, CheckCircle2, AlertCircle
+  School, UploadCloud, Loader2, CheckCircle2, XCircle
 } from 'lucide-react';
 
 const DonorRegister = () => {
@@ -21,12 +20,10 @@ const DonorRegister = () => {
   const [registeredId, setRegisteredId] = useState(''); 
   const [loading, setLoading] = useState(false);
 
-  // --- UNIVERSITY / OCR STATES ---
+  // --- UNIVERSITY / COMMUNITY STATES ---
   const [community, setCommunity] = useState('Public');
   const [idFile, setIdFile] = useState(null);
-  const [isIdVerified, setIsIdVerified] = useState(false);
-  const [verifyingId, setVerifyingId] = useState(false);
-  const [ocrProgress, setOcrProgress] = useState(0);
+  const [idPreview, setIdPreview] = useState(null);
 
   // --- MAP & HEALTH STATES ---
   const [position, setPosition] = useState({ lat: 13.0827, lng: 80.2707 });
@@ -34,7 +31,7 @@ const DonorRegister = () => {
   
   const [formData, setFormData] = useState({
     fullName: '', phone: '', email: '', password: '', bloodGroup: '', dob: '',
-    community: 'Public', department: '', roleType: 'Student', year: '',
+    department: '', roleType: 'Student', year: '',
     weight: true, alcohol: false, surgery: false, tattoo: false, medication: false
   });
 
@@ -49,59 +46,33 @@ const DonorRegister = () => {
     setHealthScore(score < 0 ? 0 : score);
   }, [formData]);
 
-  // --- ✅ NEW: FRONTEND OCR VERIFICATION LOGIC ---
-  const handleIdVerify = async () => {
-    if (!idFile) return toast.error("Please select your ID card image first");
-    
-    setVerifyingId(true);
-    setOcrProgress(0);
-
-    try {
-      // 1. Create Tesseract Worker
-      const worker = await createWorker('eng', 1, {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            setOcrProgress(Math.round(m.progress * 100));
-          }
-        }
-      });
-
-      // 2. Perform OCR
-      const { data: { text } } = await worker.recognize(idFile);
-      const extractedText = text.toUpperCase();
-      
-      // 3. Clean up worker
-      await worker.terminate();
-
-      console.log("Extracted Text:", extractedText);
-
-      // 4. Keyword Matching (Based on your Periyar University ID)
-      const keywords = ["PERIYAR", "UNIVERSITY", "SALEM"];
-      const isMatched = keywords.every(key => extractedText.includes(key));
-      
-      const isStudent = extractedText.includes("STUDENT") || extractedText.includes("IDENTITY");
-
-      if (isMatched) {
-        setIsIdVerified(true);
-        setFormData(prev => ({ ...prev, roleType: isStudent ? "Student" : "Staff" }));
-        toast.success("Periyar University ID Verified Locally! ✅");
-      } else {
-        toast.error("Invalid ID Card. Please ensure 'Periyar University' is clearly visible.");
-      }
-    } catch (err) {
-      console.error("OCR Error:", err);
-      toast.error("AI Scanning failed. Please use a clearer photo.");
-    } finally {
-      setVerifyingId(false);
+  // Helper: Handle Image Selection & Preview
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setIdFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setIdPreview(reader.result);
+      reader.readAsDataURL(file);
     }
+  };
+
+  // Helper: Convert File to Base64 for Backend
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
   };
 
   // STEP 1: Initial Submit (Sends OTP)
   const handleInitialSubmit = async (e) => {
     e.preventDefault();
     
-    if (community === 'Periyar University' && !isIdVerified) {
-        return toast.error("Please verify your University ID card to proceed.");
+    if (community === 'Periyar University' && !idFile) {
+        return toast.error("Please upload your University ID card for verification.");
     }
 
     setLoading(true);
@@ -114,33 +85,41 @@ const DonorRegister = () => {
       const data = await res.json();
       if (res.ok) {
         setShowOTP(true);
+        toast.success("Verification code sent to your email!");
       } else {
         toast.error(data.message || "Failed to send OTP.");
       }
     } catch (err) {
-      toast.error("Connection error.");
+      toast.error("Connection error. Please check your server.");
     } finally {
       setLoading(false);
     }
   };
 
-  // STEP 2: Final Registration
+  // STEP 2: Final Registration (After OTP Success)
   const finalizeRegistration = async () => {
     setLoading(true);
-    const finalData = {
-      ...formData,
-      community: community,
-      lat: position.lat,
-      lng: position.lng,
-      healthScore: healthScore
-    };
-
     try {
+      let base64Image = null;
+      if (idFile) {
+        base64Image = await convertToBase64(idFile);
+      }
+
+      const finalData = {
+        ...formData,
+        community: community,
+        id_card_image: base64Image,
+        lat: position.lat,
+        lng: position.lng,
+        healthScore: healthScore
+      };
+
       const res = await fetch(`${API_URL}/register/donor`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(finalData)
       });
+      
       const data = await res.json();
       if (res.ok && data.unique_id) {
         setRegisteredId(data.unique_id);
@@ -150,7 +129,7 @@ const DonorRegister = () => {
         toast.error(data.message || "Registration failed.");
       }
     } catch (err) {
-      toast.error("Registration error.");
+      toast.error("Registration error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -188,7 +167,8 @@ const DonorRegister = () => {
             </label>
             <select 
                 className="w-full p-5 bg-slate-50 rounded-[24px] border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-black text-slate-700 transition-all shadow-inner"
-                onChange={(e) => { setCommunity(e.target.value); setIsIdVerified(false); }}
+                onChange={(e) => { setCommunity(e.target.value); setIdFile(null); setIdPreview(null); }}
+                value={community}
             >
                 <option value="Public">Public (General)</option>
                 <option value="Periyar University">Periyar University, Salem</option>
@@ -199,7 +179,7 @@ const DonorRegister = () => {
           {community === 'Periyar University' && (
             <div className="bg-indigo-50/50 p-8 rounded-[40px] border-2 border-dashed border-indigo-100 animate-in slide-in-from-top duration-500">
                 <h3 className="font-black text-indigo-900 text-lg flex items-center gap-2 uppercase tracking-tighter mb-6">
-                    <School size={20} className="text-indigo-600"/> University Verification
+                    <School size={20} className="text-indigo-600"/> University Details
                 </h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -225,38 +205,30 @@ const DonorRegister = () => {
                         </div>
                     </div>
 
-                    {/* OCR UPLOAD BOX */}
-                    <div className={`p-6 rounded-[32px] border-2 border-dashed transition-all flex flex-col items-center justify-center text-center gap-4 ${isIdVerified ? 'bg-green-50 border-green-200' : 'bg-white border-indigo-200'}`}>
-                        {isIdVerified ? (
-                            <>
-                                <div className="bg-green-500 p-3 rounded-full text-white shadow-lg animate-bounce"><CheckCircle2 size={32}/></div>
-                                <p className="font-black text-green-700 uppercase text-xs tracking-widest">ID Verified Successfully</p>
-                            </>
+                    {/* ID CARD UPLOAD BOX */}
+                    <div className="p-6 rounded-[32px] border-2 border-dashed border-indigo-200 bg-white flex flex-col items-center justify-center text-center gap-4">
+                        {idPreview ? (
+                            <div className="relative group w-full h-40">
+                                <img src={idPreview} alt="ID Preview" className="w-full h-full object-contain rounded-xl" />
+                                <button 
+                                    type="button" 
+                                    onClick={() => {setIdFile(null); setIdPreview(null);}}
+                                    className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <XCircle size={16} />
+                                </button>
+                            </div>
                         ) : (
                             <>
                                 <UploadCloud size={40} className="text-indigo-300" />
                                 <div className="space-y-1">
                                     <p className="text-xs font-black text-indigo-900 uppercase">Upload ID Card</p>
-                                    <p className="text-[9px] text-indigo-400 font-bold uppercase">Front side clear image</p>
+                                    <p className="text-[9px] text-indigo-400 font-bold uppercase">Admin will verify your identity</p>
                                 </div>
-                                <input type="file" accept="image/*" className="hidden" id="id-upload" onChange={(e) => setIdFile(e.target.files[0])} />
-                                <label htmlFor="id-upload" className="cursor-pointer bg-indigo-100 text-indigo-600 px-6 py-2 rounded-full font-black text-[10px] hover:bg-indigo-200 transition">
-                                    {idFile ? idFile.name : "SELECT IMAGE"}
+                                <input type="file" accept="image/*" className="hidden" id="id-upload" onChange={handleFileChange} />
+                                <label htmlFor="id-upload" className="cursor-pointer bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] tracking-widest hover:bg-indigo-700 transition shadow-lg shadow-indigo-100">
+                                    SELECT IMAGE
                                 </label>
-                                
-                                {verifyingId ? (
-                                    <div className="w-full space-y-2">
-                                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                            <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${ocrProgress}%` }}></div>
-                                        </div>
-                                        <p className="text-[9px] font-black text-indigo-600 animate-pulse uppercase">AI Scanning: {ocrProgress}%</p>
-                                    </div>
-                                ) : (
-                                    <button type="button" onClick={handleIdVerify} disabled={!idFile} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 active:scale-95 disabled:opacity-50">
-                                        START AI VERIFICATION
-                                    </button>
-                                )}
-                                <p className="text-[8px] text-slate-400 italic font-bold"><AlertCircle size={8} className="inline mr-1"/> Processed locally for privacy</p>
                             </>
                         )}
                     </div>
@@ -318,8 +290,9 @@ const DonorRegister = () => {
             </div>
           </div>
 
-          {/* MAIN GRID: Desktop 2 Columns */}
+          {/* MAIN GRID: Desktop 2 Columns (Left: Map, Right: Health) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            
             {/* LEFT: Location & Legal */}
             <div className="space-y-8 flex flex-col h-full">
                <div className="flex-1">

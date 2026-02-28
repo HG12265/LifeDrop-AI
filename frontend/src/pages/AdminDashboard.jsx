@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { API_URL } from '../config';
-import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import ConfirmModal from '../components/ConfirmModal'; // PUDHU IMPORT
+import { toast } from 'sonner';
+import { API_URL } from '../config';
+import ConfirmModal from '../components/ConfirmModal';
 import { 
   Users, Droplets, Activity, Clock, Megaphone, 
-  Send, Trash2, ShieldCheck, AlertCircle, Database, Tent, X
+  Send, Trash2, ShieldCheck, AlertCircle, Database, 
+  Tent, X, School, LayoutDashboard, Search
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -23,8 +24,8 @@ const AdminDashboard = () => {
   // 1. Fetch System Stats & Activity
   const fetchAdminData = () => {
     fetch(`${API_URL}/api/admin/stats`, {
-    credentials: 'include'   // 🔥 MUST
-  })
+      credentials: 'include'
+    })
       .then(res => res.json())
       .then(val => setData(val))
       .catch(err => console.error("Admin fetch error:", err));
@@ -33,8 +34,8 @@ const AdminDashboard = () => {
   // 2. Fetch All Sent Broadcasts
   const fetchBroadcasts = () => {
     fetch(`${API_URL}/api/broadcasts`, {
-    credentials: 'include'   // 🔥 MUST
-  })
+      credentials: 'include'
+    })
       .then(res => res.json())
       .then(data => setAllBroadcasts(data))
       .catch(err => console.error("Broadcast fetch error:", err));
@@ -109,14 +110,15 @@ const AdminDashboard = () => {
       />
 
       {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row justify-between items-center bg-slate-900 p-8 rounded-[40px] text-white shadow-2xl gap-4">
-        <div>
-          <h2 className="text-3xl font-black italic tracking-tighter">System Monitoring Dashboard</h2>
-          <p className="text-xs font-bold text-red-500 uppercase tracking-widest mt-1">LifeDrop Management Portal</p>
+      <div className="flex flex-col md:flex-row justify-between items-center bg-slate-900 p-8 rounded-[40px] text-white shadow-2xl gap-4 relative overflow-hidden">
+        <div className="relative z-10">
+          <h2 className="text-3xl font-black italic tracking-tighter uppercase">System Monitoring</h2>
+          <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1">LifeDrop Management Portal</p>
         </div>
-        <div className="bg-white/10 p-4 rounded-3xl backdrop-blur-md border border-white/10">
+        <div className="bg-white/10 p-4 rounded-3xl backdrop-blur-md border border-white/10 relative z-10">
             <ShieldCheck size={32} className="text-red-600" />
         </div>
+        <LayoutDashboard size={200} className="absolute right-[-50px] top-[-50px] opacity-5 -rotate-12" />
       </div>
 
       {/* --- FEATURE: GLOBAL EMERGENCY BROADCAST --- */}
@@ -139,7 +141,7 @@ const AdminDashboard = () => {
                 />
                 <button 
                     onClick={sendBroadcast}
-                    className="bg-red-600 text-white px-10 py-5 rounded-[24px] font-black flex items-center justify-center gap-2 shadow-xl shadow-red-200 hover:bg-red-700 transition active:scale-95"
+                    className="bg-red-600 text-white px-10 py-5 rounded-[24px] font-black flex items-center justify-center gap-2 shadow-xl shadow-red-100 hover:bg-red-700 transition active:scale-95"
                 >
                     <Send size={20} /> DISPATCH
                 </button>
@@ -154,7 +156,7 @@ const AdminDashboard = () => {
                             <div key={b.id} className="bg-white p-3 pl-5 rounded-2xl flex items-center gap-4 shadow-sm border border-red-100 animate-in slide-in-from-left">
                                 <span className="text-sm font-bold text-gray-600">{b.message}</span>
                                 <button 
-                                    onClick={() => triggerDeleteModal(b.id)} // TRIGGER MODAL
+                                    onClick={() => triggerDeleteModal(b.id)}
                                     className="p-2 hover:bg-red-50 rounded-xl text-red-300 hover:text-red-600 transition"
                                 >
                                     <Trash2 size={16} />
@@ -168,7 +170,7 @@ const AdminDashboard = () => {
         <Megaphone size={150} className="absolute right-[-20px] top-[-20px] opacity-[0.03] -rotate-12" />
       </div>
 
-      {/* STATS GRID - 7 Clickable Cards */}
+      {/* STATS GRID - 8 Clickable Cards (2 Rows of 4 on Desktop) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <AdminCard 
           label="Total Users" value={data.stats.donors + data.stats.requesters} 
@@ -190,6 +192,14 @@ const AdminDashboard = () => {
           icon={<Droplets size={24}/>} color="bg-green-600" 
           onClick={() => navigate('/admin/details/requests?type=completed')} 
         />
+        
+        {/* ✅ NEW: UNIVERSITY VERIFICATION CARD */}
+        <AdminCard 
+          label="University Audit" value="Verify" 
+          icon={<School size={24}/>} color="bg-indigo-600" 
+          onClick={() => navigate('/admin/verifications')} 
+        />
+
         <AdminCard 
           label="Inventory Stock" value="Bank" 
           icon={<Database size={24}/>} color="bg-rose-500" 

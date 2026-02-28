@@ -1,104 +1,129 @@
 import React, { useState } from 'react';
-import { UploadCloud, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
-import { createWorker } from 'tesseract.js'; // Changed import for better control
+import { UploadCloud, ShieldCheck, Loader2, AlertCircle, XCircle, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import { API_URL } from '../config';
 
-const IDCardUpload = ({ onVerified }) => {
-  const [file, setFile] = useState(null);
+const IDCardUpload = ({ onImageSelect, mode = "admin", isVerified = false }) => {
+  const [idPreview, setIdPreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [verified, setVerified] = useState(false);
 
-  const handleVerifyLocal = async () => {
-    if (!file) return toast.error("Please select an ID card image");
+  // 1. Handle Image Selection & Preview
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        return toast.error("Image size too large! Please upload under 5MB.");
+      }
 
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setIdPreview(reader.result);
+        // Parent-ku image data-va anupuroam
+        onImageSelect(reader.result); 
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // 2. Gemini AI Verification (Only for Requesters)
+  const handleAiVerify = async () => {
+    if (!idPreview) return toast.error("Please select an image first");
+    
     setLoading(true);
-    setProgress(0);
+    const base64Data = idPreview.split(',')[1]; // Get raw base64
 
     try {
-      // 1. Create Worker
-      const worker = await createWorker('eng', 1, {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            setProgress(Math.round(m.progress * 100));
-          }
-        }
+      const res = await fetch(`${API_URL}/api/verify-id-gemini`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64Data })
       });
-
-      // 2. Recognize Text
-      const { data: { text } } = await worker.recognize(file);
-      const extractedText = text.toUpperCase();
       
-      // 3. Terminate Worker (Memory save panna)
-      await worker.terminate();
+      const data = await res.json();
 
-      console.log("Extracted Text:", extractedText);
-
-      // ✅ KEYWORD MATCHING
-      const keywords = ["PERIYAR", "UNIVERSITY", "SALEM"];
-      const isMatched = keywords.every(key => extractedText.includes(key));
-      const isStudent = extractedText.includes("STUDENT") || extractedText.includes("IDENTITY");
-
-      if (isMatched) {
-        setVerified(true);
-        toast.success("Periyar University ID Verified!");
-        onVerified(isStudent ? "Student" : "Staff");
+      if (res.ok && data.is_valid) {
+        toast.success("AI Verified: Periyar University Member! ✅");
+        onImageSelect(idPreview, true, data.role); // Success callback
       } else {
-        toast.error("Invalid ID Card. Please ensure 'Periyar University' is clearly visible.");
+        toast.error("AI could not verify this ID. Please use a clearer photo.");
       }
     } catch (err) {
-      console.error("OCR Error:", err);
-      toast.error("AI Scanning failed. Please use a clearer photo.");
+      toast.error("AI Service Error. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  const removeImage = () => {
+    setIdPreview(null);
+    onImageSelect(null, false);
+  };
+
   return (
-    <div className="bg-white p-6 rounded-[32px] border-2 border-dashed border-slate-200 text-center shadow-inner">
-      {verified ? (
-        <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-500">
-          <div className="bg-green-100 p-4 rounded-full text-green-600 shadow-lg">
+    <div className="bg-white p-6 rounded-[32px] border-2 border-dashed border-slate-200 text-center shadow-inner relative overflow-hidden">
+      
+      {isVerified ? (
+        <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-500 py-4">
+          <div className="bg-green-100 p-4 rounded-full text-green-600 shadow-lg shadow-green-100">
             <ShieldCheck size={40} />
           </div>
-          <p className="font-black text-green-700 uppercase text-xs tracking-widest">Verified University Member</p>
+          <p className="font-black text-green-700 uppercase text-xs tracking-widest">Identity Verified</p>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex flex-col items-center gap-2">
-            <div className="bg-red-50 p-3 rounded-2xl text-red-600 mb-2">
+          {!idPreview ? (
+            <div className="flex flex-col items-center gap-2 py-4">
+              <div className="bg-indigo-50 p-4 rounded-3xl text-indigo-600 mb-2">
                 <UploadCloud size={32} />
-            </div>
-            <p className="text-xs font-black text-slate-500 uppercase tracking-tighter">Upload ID Card (Front Side)</p>
-          </div>
-          
-          <input 
-            type="file" accept="image/*" 
-            className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-slate-900 file:text-white cursor-pointer"
-            onChange={(e) => setFile(e.target.files[0])}
-          />
-
-          {loading ? (
-            <div className="space-y-2">
-                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-red-600 h-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
-                </div>
-                <p className="text-[10px] font-black text-red-600 animate-pulse uppercase">AI Scanning: {progress}%</p>
+              </div>
+              <p className="text-xs font-black text-slate-500 uppercase tracking-tighter">Upload University ID</p>
+              <p className="text-[9px] text-slate-400 font-bold uppercase">Front side clear image</p>
+              
+              <input 
+                type="file" accept="image/*" id="id-input"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <label 
+                htmlFor="id-input"
+                className="mt-2 bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest cursor-pointer hover:bg-indigo-600 transition-all active:scale-95 shadow-lg"
+              >
+                Select Image
+              </label>
             </div>
           ) : (
-            <button 
-              type="button"
-              onClick={handleVerifyLocal}
-              disabled={!file}
-              className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-red-100 hover:bg-red-700 transition active:scale-95 disabled:opacity-50"
-            >
-              START AI VERIFICATION
-            </button>
+            <div className="space-y-4 animate-in fade-in duration-300">
+              {/* Image Preview */}
+              <div className="relative group mx-auto w-full max-w-[200px] aspect-[4/3] bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
+                <img src={idPreview} alt="ID Preview" className="w-full h-full object-contain p-2" />
+                <button 
+                  onClick={removeImage}
+                  className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <XCircle size={16} />
+                </button>
+              </div>
+
+              {/* Action Button based on Mode */}
+              {mode === "ai" ? (
+                <button 
+                  type="button"
+                  onClick={handleAiVerify}
+                  disabled={loading}
+                  className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+                >
+                  {loading ? <Loader2 className="animate-spin" size={16} /> : <><Zap size={16} fill="white"/> START AI VERIFICATION</>}
+                </button>
+              ) : (
+                <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-start gap-3 text-left">
+                   <AlertCircle size={18} className="text-amber-600 shrink-0" />
+                   <p className="text-[9px] font-bold text-amber-800 leading-relaxed uppercase">
+                     Image selected. Admin will verify this ID after you complete registration.
+                   </p>
+                </div>
+              )}
+            </div>
           )}
-          
-          <p className="text-[9px] text-slate-400 font-bold italic flex items-center justify-center gap-1">
-            <AlertCircle size={10}/> Processed locally on your device.
-          </p>
         </div>
       )}
     </div>

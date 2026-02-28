@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { API_URL } from '../config'; 
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { createWorker } from 'tesseract.js'; // ✅ Frontend OCR
 import { 
   User, Mail, Phone, Lock, ShieldAlert, ArrowRight, 
-  UserPlus, ShieldCheck, School, UploadCloud, Loader2, CheckCircle2, AlertCircle 
+  UserPlus, ShieldCheck, School, UploadCloud, Loader2, 
+  CheckCircle2, AlertCircle, XCircle, Zap 
 } from 'lucide-react';
 import OTPModal from '../components/OTPModal';
 
@@ -15,72 +15,77 @@ const RequesterRegister = () => {
   // --- FORM & LOADING STATES ---
   const [formData, setFormData] = useState({ 
     fullName: '', phone: '', email: '', password: '',
-    community: 'Public', department: '', roleType: 'Student', year: '' 
+    department: '', roleType: 'Student', year: '' 
   });
   const [showOTP, setShowOTP] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // --- UNIVERSITY / OCR STATES ---
+  // --- UNIVERSITY / AI STATES ---
   const [community, setCommunity] = useState('Public');
   const [idFile, setIdFile] = useState(null);
+  const [idPreview, setIdPreview] = useState(null);
   const [isIdVerified, setIsIdVerified] = useState(false);
   const [verifyingId, setVerifyingId] = useState(false);
-  const [ocrProgress, setOcrProgress] = useState(0);
 
-  // --- ✅ NEW: FRONTEND OCR VERIFICATION LOGIC ---
-  const handleIdVerify = async () => {
+  // Helper: Handle Image Selection & Preview
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setIdFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setIdPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Helper: Convert File to Base64 for Gemini API
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // --- ✅ STEP 1: GEMINI AI ID VERIFICATION (Backend Call) ---
+  const handleAiVerify = async () => {
     if (!idFile) return toast.error("Please select your ID card image first");
     
     setVerifyingId(true);
-    setOcrProgress(0);
-
     try {
-      // 1. Create Tesseract Worker
-      const worker = await createWorker('eng', 1, {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            setOcrProgress(Math.round(m.progress * 100));
-          }
-        }
+      const base64Full = await convertToBase64(idFile);
+      const base64Data = base64Full.split(',')[1]; // Get raw base64 string
+
+      const res = await fetch(`${API_URL}/api/verify-id-gemini`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64Data })
       });
-
-      // 2. Perform OCR
-      const { data: { text } } = await worker.recognize(idFile);
-      const extractedText = text.toUpperCase();
       
-      // 3. Clean up worker
-      await worker.terminate();
+      const data = await res.json();
 
-      console.log("Extracted Text:", extractedText);
-
-      // 4. Keyword Matching (Based on your Periyar University ID)
-      const keywords = ["PERIYAR", "UNIVERSITY", "SALEM"];
-      const isMatched = keywords.every(key => extractedText.includes(key));
-      
-      const isStudent = extractedText.includes("STUDENT") || extractedText.includes("IDENTITY");
-
-      if (isMatched) {
+      if (res.ok && data.is_valid) {
         setIsIdVerified(true);
-        setFormData(prev => ({ ...prev, roleType: isStudent ? "Student" : "Staff" }));
-        toast.success("Periyar University ID Verified Locally! ✅");
+        setFormData(prev => ({ ...prev, roleType: data.role || "Student" }));
+        toast.success("AI Verified: Periyar University Member! ✅");
       } else {
-        toast.error("Invalid ID Card. Please ensure 'Periyar University' is clearly visible.");
+        toast.error("AI could not verify this ID. Please upload a clearer photo of your Periyar University ID.");
       }
     } catch (err) {
-      console.error("OCR Error:", err);
-      toast.error("AI Scanning failed. Please use a clearer photo.");
+      toast.error("AI Verification service error. Try again.");
     } finally {
       setVerifyingId(false);
     }
   };
 
-  // STEP 1: Initial Submit (Sends OTP)
+  // --- ✅ STEP 2: INITIAL SUBMIT (Sends OTP) ---
   const handleInitialSubmit = async (e) => {
     e.preventDefault();
     
     // Gatekeeper: University members must verify ID first
     if (community === 'Periyar University' && !isIdVerified) {
-        return toast.error("Please verify your University ID card to proceed.");
+        return toast.error("Please verify your University ID card with AI to proceed.");
     }
 
     setLoading(true);
@@ -88,33 +93,33 @@ const RequesterRegister = () => {
       const res = await fetch(`${API_URL}/api/verify/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ email: formData.email })
       });
       const data = await res.json();
       if (res.ok) {
         setShowOTP(true);
+        toast.success("Verification code sent to your email!");
       } else {
         toast.error(data.message || "Failed to send OTP.");
       }
     } catch (err) {
-      toast.error("Network error. Is Flask running?");
+      toast.error("Connection error. Is Flask running?");
     } finally {
       setLoading(false);
     }
   };
 
-  // STEP 2: Final Registration (Runs after OTP verification)
+  // --- ✅ STEP 3: FINAL REGISTRATION (After OTP) ---
   const finalizeRegistration = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/register/requester`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
             ...formData,
-            community: community // Ensure latest community is sent
+            community: community,
+            is_verified: isIdVerified // Send AI verification status
         })
       });
       
@@ -135,9 +140,8 @@ const RequesterRegister = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-10 relative animate-in fade-in zoom-in duration-500">
+    <div className="max-w-6xl mx-auto p-4 md:p-10 relative animate-in fade-in zoom-in duration-500">
       
-      {/* OTP MODAL INTEGRATION */}
       {showOTP && (
         <OTPModal 
           email={formData.email} 
@@ -159,7 +163,7 @@ const RequesterRegister = () => {
             <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-red-600/10 rounded-full blur-3xl"></div>
         </div>
 
-        <form onSubmit={handleInitialSubmit} className="p-8 md:p-12 space-y-10">
+        <form onSubmit={handleInitialSubmit} className="p-8 md:p-12 space-y-12">
           
           {/* COMMUNITY SELECTION */}
           <div className="max-w-md mx-auto space-y-2">
@@ -169,6 +173,7 @@ const RequesterRegister = () => {
             <select 
                 className="w-full p-5 bg-slate-50 rounded-[24px] border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-black text-slate-700 transition-all shadow-inner"
                 onChange={(e) => { setCommunity(e.target.value); setIsIdVerified(false); }}
+                value={community}
             >
                 <option value="Public">Public (General)</option>
                 <option value="Periyar University">Periyar University, Salem</option>
@@ -205,38 +210,34 @@ const RequesterRegister = () => {
                         </div>
                     </div>
 
-                    {/* OCR UPLOAD BOX */}
+                    {/* AI UPLOAD BOX */}
                     <div className={`p-6 rounded-[32px] border-2 border-dashed transition-all flex flex-col items-center justify-center text-center gap-4 ${isIdVerified ? 'bg-green-50 border-green-200' : 'bg-white border-indigo-200'}`}>
                         {isIdVerified ? (
                             <>
                                 <div className="bg-green-500 p-3 rounded-full text-white shadow-lg animate-bounce"><CheckCircle2 size={32}/></div>
-                                <p className="font-black text-green-700 uppercase text-xs tracking-widest">ID Verified Successfully</p>
+                                <p className="font-black text-green-700 uppercase text-xs tracking-widest">AI Verified Successfully</p>
                             </>
                         ) : (
                             <>
-                                <UploadCloud size={40} className="text-indigo-300" />
-                                <div className="space-y-1">
-                                    <p className="text-xs font-black text-indigo-900 uppercase">Upload ID Card</p>
-                                    <p className="text-[9px] text-indigo-400 font-bold uppercase">Front side clear image</p>
-                                </div>
-                                <input type="file" accept="image/*" className="hidden" id="id-upload" onChange={(e) => setIdFile(e.target.files[0])} />
-                                <label htmlFor="id-upload" className="cursor-pointer bg-indigo-100 text-indigo-600 px-6 py-2 rounded-full font-black text-[10px] hover:bg-indigo-200 transition">
-                                    {idFile ? idFile.name : "SELECT IMAGE"}
-                                </label>
-                                
-                                {verifyingId ? (
-                                    <div className="w-full space-y-2">
-                                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                            <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${ocrProgress}%` }}></div>
-                                        </div>
-                                        <p className="text-[9px] font-black text-indigo-600 animate-pulse uppercase">AI Scanning: {ocrProgress}%</p>
+                                {idPreview ? (
+                                    <div className="relative group w-full h-32">
+                                        <img src={idPreview} alt="Preview" className="w-full h-full object-contain rounded-xl" />
+                                        <button onClick={() => {setIdFile(null); setIdPreview(null);}} className="absolute top-0 right-0 bg-red-600 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><XCircle size={14}/></button>
                                     </div>
                                 ) : (
-                                    <button type="button" onClick={handleIdVerify} disabled={!idFile} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 active:scale-95 disabled:opacity-50">
-                                        START AI VERIFICATION
-                                    </button>
+                                    <UploadCloud size={40} className="text-indigo-300" />
                                 )}
-                                <p className="text-[8px] text-slate-400 italic font-bold"><AlertCircle size={8} className="inline mr-1"/> Processed locally for privacy</p>
+                                <div className="space-y-1">
+                                    <p className="text-xs font-black text-indigo-900 uppercase">Upload ID Card</p>
+                                    <p className="text-[9px] text-indigo-400 font-bold uppercase">AI will verify your identity</p>
+                                </div>
+                                <input type="file" accept="image/*" className="hidden" id="id-upload" onChange={handleFileChange} />
+                                <label htmlFor="id-upload" className="cursor-pointer bg-indigo-100 text-indigo-600 px-6 py-2 rounded-full font-black text-[10px] hover:bg-indigo-200 transition">
+                                    {idFile ? "CHANGE IMAGE" : "SELECT IMAGE"}
+                                </label>
+                                <button type="button" onClick={handleAiVerify} disabled={verifyingId || !idFile} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 active:scale-95 disabled:opacity-50">
+                                    {verifyingId ? <><Loader2 className="animate-spin" size={16}/> AI SCANNING...</> : <><Zap size={14} fill="white"/> START AI VERIFICATION</>}
+                                </button>
                             </>
                         )}
                     </div>
@@ -244,46 +245,43 @@ const RequesterRegister = () => {
             </div>
           )}
 
+          {/* ACCOUNT DETAILS BLOCK */}
           <div className="space-y-6">
             <h3 className="font-black text-gray-800 text-lg flex items-center gap-2 uppercase tracking-tighter border-b pb-2 border-gray-50">
                 <ShieldCheck size={18} className="text-red-600"/> Account Details
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+              {/* Full Name */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest">
-                    <User size={10}/> Full Name
-                </label>
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest"><User size={10}/> Full Name</label>
                 <div className="relative group">
                     <User className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="text" placeholder="Enter your name" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, fullName: e.target.value})} required />
                 </div>
               </div>
 
+              {/* Mobile Number */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest">
-                    <Phone size={10}/> Mobile Number
-                </label>
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest"><Phone size={10}/> Mobile Number</label>
                 <div className="relative group">
                     <Phone className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
-                    <input type="tel" placeholder="+91 00000 00000" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, phone: e.target.value})} required />
+                    <input type="tel" placeholder="+91" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, phone: e.target.value})} required />
                 </div>
               </div>
 
+              {/* Email ID */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest">
-                    <Mail size={10}/> Email ID
-                </label>
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest"><Mail size={10}/> Email ID</label>
                 <div className="relative group">
                     <Mail className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
-                    <input type="email" placeholder="example@mail.com" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, email: e.target.value})} required />
+                    <input type="email" placeholder="mail@example.com" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, email: e.target.value})} required />
                 </div>
               </div>
 
+              {/* Password */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest">
-                    <Lock size={10}/> Create Password
-                </label>
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest"><Lock size={10}/> Create Password</label>
                 <div className="relative group">
                     <Lock className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="password" placeholder="••••••••" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, password: e.target.value})} required />
@@ -292,6 +290,7 @@ const RequesterRegister = () => {
             </div>
           </div>
 
+          {/* Legal Alert */}
           <div className="flex gap-4 bg-red-50 p-6 rounded-[32px] border border-red-100 shadow-sm">
              <ShieldAlert size={28} className="text-red-600 shrink-0" />
              <p className="text-[11px] font-bold text-red-800 leading-relaxed uppercase tracking-tight">
@@ -299,11 +298,12 @@ const RequesterRegister = () => {
              </p>
           </div>
 
+          {/* Submit Action */}
           <div className="flex flex-col items-center gap-6">
             <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full bg-red-600 text-white py-6 rounded-[28px] font-black text-xl shadow-xl shadow-red-100 hover:bg-red-700 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                className="w-full bg-red-600 text-white py-6 rounded-[28px] font-black text-xl shadow-xl shadow-red-100 hover:bg-red-700 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 uppercase tracking-widest"
             >
               {loading ? <div className="flex items-center gap-2"><Loader2 className="animate-spin" size={20}/> PROCESSING...</div> : <><ArrowRight size={24}/> VERIFY & SIGN UP</>}
             </button>

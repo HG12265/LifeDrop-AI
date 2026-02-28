@@ -13,6 +13,7 @@ import DonorRegister from './pages/DonorRegister';
 import RequesterRegister from './pages/RequesterRegister';
 import Login from './pages/Login';
 import PublicProfile from './pages/PublicProfile';
+import AdminVerification from './pages/AdminVerification';
 import DonorDashboard from './pages/DonorDashboard';     
 import RequesterDashboard from './pages/RequesterDashboard'; 
 import BloodRequestForm from './pages/BloodRequestForm';
@@ -135,6 +136,10 @@ function App() {
             <Route 
               path="/admin/camps" 
               element={user && user.role === 'admin' ? <CampManager /> : <Navigate to="/login" />} 
+            />
+            <Route 
+              path="/admin/verifications" 
+              element={user?.role === 'admin' ? <AdminVerification /> : <Navigate to="/login" />} 
             />
             <Route 
               path="/edit-profile" 

@@ -113,6 +113,7 @@ const donorSchema = new mongoose.Schema({
     department: { type: String },
     role_type: { type: String }, // 'Student' or 'Staff'
     year: { type: String },
+    id_card_image: { type: String },
     is_verified: { type: Boolean, default: false },
     created_at: { type: Date, default: Date.now }
 });
@@ -570,7 +571,8 @@ app.post('/register/donor', async (req, res) => {
             department: data.department || null,
             role_type: data.roleType || null,
             year: data.year || null,
-            is_verified: data.community === "Periyar University" ? true : false,
+            id_card_image: data.id_card_image,
+            is_verified: data.community === "Public" ? true : false,
             created_at: new Date()
         });
 
@@ -612,6 +614,11 @@ app.post('/register/requester', async (req, res) => {
             phone: data.phone,
             email: data.email,
             password: hashedPw,
+            community: data.community,
+            department: data.department,
+            role_type: data.roleType,
+            year: data.year,
+            is_verified: data.community === "Public" ? true : data.is_verified,
             created_at: new Date()
         });
 
@@ -625,6 +632,67 @@ app.post('/register/requester', async (req, res) => {
     }
 });
 
+
+// 1. Get all University Donors waiting for verification
+app.get('/api/admin/pending-verifications', async (req, res) => {
+    try {
+        const pending = await Donor.find({ 
+            community: "Periyar University", 
+            is_verified: false 
+        });
+        res.json(pending);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching pending list" });
+    }
+});
+
+// 2. Approve a Donor
+app.post('/api/admin/approve-donor/:u_id', async (req, res) => {
+    try {
+        const { u_id } = req.params;
+        await Donor.updateOne({ unique_id: u_id }, { $set: { is_verified: true } });
+        
+        // Optional: Send a broadcast or email to donor that they are verified
+        res.json({ success: true, message: "Donor verified successfully!" });
+    } catch (error) {
+        res.status(500).json({ message: "Approval failed" });
+    }
+});
+
+app.post('/api/verify-id-gemini', async (req, res) => {
+    try {
+        const { imageBase64 } = req.body; // Frontend-lendhu base64 image varum
+
+        const prompt = `
+        Analyze this ID card image. 
+        1. Does it belong to 'Periyar University, Salem'? 
+        2. Is it a 'Student' or 'Staff' card?
+        Answer ONLY in this JSON format: {"is_valid": true, "role": "Student"}.
+        If it's not a Periyar University card, set is_valid to false.
+        `;
+
+        const payload = {
+            contents: [{
+                parts: [
+                    { text: prompt },
+                    { inline_data: { mime_type: "image/jpeg", data: imageBase64 } }
+                ]
+            }]
+        };
+
+        const response = await axios.post(GEMINI_URL, payload);
+        const resultText = response.data.candidates[0].content.parts[0].text;
+        
+        // Clean the response (Gemini sometimes adds markdown ```json)
+        const cleanJson = resultText.replace(/```json|```/g, "").trim();
+        const result = JSON.parse(cleanJson);
+
+        res.json(result);
+    } catch (error) {
+        console.error("Gemini Error:", error);
+        res.status(500).json({ message: "AI Verification failed" });
+    }
+});
 // Send OTP - FIXED VERSION
 app.post('/api/verify/send-otp', async (req, res) => {
     try {
@@ -984,6 +1052,9 @@ app.get('/api/match-donors/:request_id', async (req, res) => {
                 { last_donation_date: { $lte: cooldownLimit } }
             ]
         };
+        if (requester.community === "Periyar University") {
+            query.is_verified = true;
+        }
         
         const donors = await Donor.find(query);
         
