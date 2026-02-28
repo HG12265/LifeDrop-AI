@@ -24,7 +24,8 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemi
 const SECRET_KEY = process.env.SECRET_KEY || 'lifedrop-super-secret-key-2024';
 
 // ==================== MIDDLEWARE ====================
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // 10MB varaikkum allow pannum
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors({
     origin: [
     "http://localhost:5173",
