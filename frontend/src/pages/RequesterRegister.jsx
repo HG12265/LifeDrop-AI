@@ -2,90 +2,39 @@ import React, { useState } from 'react';
 import { API_URL } from '../config'; 
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import SuccessModal from '../components/SuccessModal';
+import OTPModal from '../components/OTPModal'; 
+import IDCardUpload from '../components/IDCardUpload'; // ✅ PUDHU IMPORT
 import { 
   User, Mail, Phone, Lock, ShieldAlert, ArrowRight, 
-  UserPlus, ShieldCheck, School, UploadCloud, Loader2, 
-  CheckCircle2, AlertCircle, XCircle, Zap 
+  UserPlus, ShieldCheck, School, Loader2
 } from 'lucide-react';
-import OTPModal from '../components/OTPModal';
 
 const RequesterRegister = () => {
   const navigate = useNavigate();
   
-  // --- FORM & LOADING STATES ---
-  const [formData, setFormData] = useState({ 
-    fullName: '', phone: '', email: '', password: '',
-    department: '', roleType: 'Student', year: '' 
-  });
-  const [showOTP, setShowOTP] = useState(false);
+  // --- MODAL & LOADING STATES ---
+  const [showModal, setShowModal] = useState(false); 
+  const [showOTP, setShowOTP] = useState(false); 
+  const [registeredId, setRegisteredId] = useState(''); 
   const [loading, setLoading] = useState(false);
 
   // --- UNIVERSITY / AI STATES ---
   const [community, setCommunity] = useState('Public');
-  const [idFile, setIdFile] = useState(null);
-  const [idPreview, setIdPreview] = useState(null);
+  const [idFile, setIdFile] = useState(null); // Base64 image
   const [isIdVerified, setIsIdVerified] = useState(false);
-  const [verifyingId, setVerifyingId] = useState(false);
 
-  // Helper: Handle Image Selection & Preview
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setIdFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setIdPreview(reader.result);
-      reader.readAsDataURL(file);
-    }
-  };
+  // --- FORM DATA ---
+  const [formData, setFormData] = useState({ 
+    fullName: '', phone: '', email: '', password: '',
+    department: '', roleType: 'Student', year: '' 
+  });
 
-  // Helper: Convert File to Base64 for Gemini API
-  const convertToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
-  // --- ✅ STEP 1: GEMINI AI ID VERIFICATION (Backend Call) ---
-  const handleAiVerify = async () => {
-    if (!idFile) return toast.error("Please select ID card image first");
-  
-    setVerifyingId(true);
-    try {
-    // ✅ FIX: idFile already base64-ah thaan varum. 
-    // So split(',') mattum panna podhum.
-      const base64Data = idFile.split(',')[1]; 
-
-      const res = await fetch(`${API_URL}/api/verify-id-gemini`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64Data })
-      });
-    
-      const result = await res.json();
-
-      if (res.ok && result.is_valid) {
-        setIsIdVerified(true);
-        setFormData(prev => ({ ...prev, roleType: result.role || "Student" }));
-        toast.success("AI Verified Successfully! ✅");
-      } else {
-        toast.error(result.message || "AI could not verify this ID.");
-      }
-    } catch (err) {
-      console.error("AI Verification Error:", err);
-      toast.error("AI Service Error: " + err.message);
-    } finally {
-      setVerifyingId(false);
-    }
-  };
-
-  // --- ✅ STEP 2: INITIAL SUBMIT (Sends OTP) ---
+  // STEP 1: Initial Submit (Sends OTP)
   const handleInitialSubmit = async (e) => {
     e.preventDefault();
     
-    // Gatekeeper: University members must verify ID first
+    // Gatekeeper: University members must verify ID with AI first
     if (community === 'Periyar University' && !isIdVerified) {
         return toast.error("Please verify your University ID card with AI to proceed.");
     }
@@ -111,26 +60,28 @@ const RequesterRegister = () => {
     }
   };
 
-  // --- ✅ STEP 3: FINAL REGISTRATION (After OTP) ---
+  // STEP 2: Final Registration (Runs after OTP Success)
   const finalizeRegistration = async () => {
     setLoading(true);
     try {
+      const finalData = {
+        ...formData,
+        community: community,
+        is_verified: isIdVerified, // AI verification status
+        id_card_image: idFile // Optional: Store image for requesters too
+      };
+
       const res = await fetch(`${API_URL}/register/requester`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            ...formData,
-            community: community,
-            is_verified: isIdVerified // Send AI verification status
-        })
+        body: JSON.stringify(finalData)
       });
       
       const data = await res.json();
-
-      if (res.ok) {
-        setShowOTP(false); 
-        toast.success(`Account Verified! Welcome, Your ID is #${data.unique_id}`);
-        navigate('/login');
+      if (res.ok && data.unique_id) {
+        setRegisteredId(data.unique_id);
+        setShowOTP(false);
+        setShowModal(true);
       } else {
         toast.error(data.message || "Registration failed.");
       }
@@ -142,18 +93,17 @@ const RequesterRegister = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-10 relative animate-in fade-in zoom-in duration-500">
+    <div className="max-w-4xl mx-auto p-4 md:p-10 relative animate-in fade-in zoom-in duration-500">
       
       {showOTP && (
-        <OTPModal 
-          email={formData.email} 
-          onVerify={finalizeRegistration} 
-          onClose={() => setShowOTP(false)}
-          onResend={handleInitialSubmit}
-        />
+        <OTPModal email={formData.email} onVerify={finalizeRegistration} onClose={() => setShowOTP(false)} onResend={handleInitialSubmit} />
       )}
 
-      <div className={`bg-white shadow-2xl rounded-[48px] overflow-hidden border border-gray-100 ${showOTP ? 'blur-sm pointer-events-none' : ''}`}>
+      {showModal && (
+        <SuccessModal userId={registeredId} type="requester" onClose={() => navigate('/login')} />
+      )}
+
+      <div className={`bg-white shadow-2xl rounded-[48px] overflow-hidden border border-gray-100 ${(showModal || showOTP) ? 'blur-sm pointer-events-none' : ''}`}>
         
         {/* Modern Header Section */}
         <div className="bg-slate-900 p-10 md:p-14 text-white text-center relative overflow-hidden border-b-8 border-red-600">
@@ -165,7 +115,7 @@ const RequesterRegister = () => {
             <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-red-600/10 rounded-full blur-3xl"></div>
         </div>
 
-        <form onSubmit={handleInitialSubmit} className="p-8 md:p-12 space-y-12">
+        <form onSubmit={handleInitialSubmit} className="p-8 md:p-12 space-y-10">
           
           {/* COMMUNITY SELECTION */}
           <div className="max-w-md mx-auto space-y-2">
@@ -182,11 +132,11 @@ const RequesterRegister = () => {
             </select>
           </div>
 
-          {/* --- UNIVERSITY SPECIAL SECTION (Indigo Theme) --- */}
+          {/* --- UNIVERSITY SPECIAL SECTION (AI MODE) --- */}
           {community === 'Periyar University' && (
             <div className="bg-indigo-50/50 p-8 rounded-[40px] border-2 border-dashed border-indigo-100 animate-in slide-in-from-top duration-500">
                 <h3 className="font-black text-indigo-900 text-lg flex items-center gap-2 uppercase tracking-tighter mb-6">
-                    <School size={20} className="text-indigo-600"/> University Verification
+                    <School size={20} className="text-indigo-600"/> University AI Verification
                 </h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -212,37 +162,18 @@ const RequesterRegister = () => {
                         </div>
                     </div>
 
-                    {/* AI UPLOAD BOX */}
-                    <div className={`p-6 rounded-[32px] border-2 border-dashed transition-all flex flex-col items-center justify-center text-center gap-4 ${isIdVerified ? 'bg-green-50 border-green-200' : 'bg-white border-indigo-200'}`}>
-                        {isIdVerified ? (
-                            <>
-                                <div className="bg-green-500 p-3 rounded-full text-white shadow-lg animate-bounce"><CheckCircle2 size={32}/></div>
-                                <p className="font-black text-green-700 uppercase text-xs tracking-widest">AI Verified Successfully</p>
-                            </>
-                        ) : (
-                            <>
-                                {idPreview ? (
-                                    <div className="relative group w-full h-32">
-                                        <img src={idPreview} alt="Preview" className="w-full h-full object-contain rounded-xl" />
-                                        <button onClick={() => {setIdFile(null); setIdPreview(null);}} className="absolute top-0 right-0 bg-red-600 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><XCircle size={14}/></button>
-                                    </div>
-                                ) : (
-                                    <UploadCloud size={40} className="text-indigo-300" />
-                                )}
-                                <div className="space-y-1">
-                                    <p className="text-xs font-black text-indigo-900 uppercase">Upload ID Card</p>
-                                    <p className="text-[9px] text-indigo-400 font-bold uppercase">AI will verify your identity</p>
-                                </div>
-                                <input type="file" accept="image/*" className="hidden" id="id-upload" onChange={handleFileChange} />
-                                <label htmlFor="id-upload" className="cursor-pointer bg-indigo-100 text-indigo-600 px-6 py-2 rounded-full font-black text-[10px] hover:bg-indigo-200 transition">
-                                    {idFile ? "CHANGE IMAGE" : "SELECT IMAGE"}
-                                </label>
-                                <button type="button" onClick={handleAiVerify} disabled={verifyingId || !idFile} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 active:scale-95 disabled:opacity-50">
-                                    {verifyingId ? <><Loader2 className="animate-spin" size={16}/> AI SCANNING...</> : <><Zap size={14} fill="white"/> START AI VERIFICATION</>}
-                                </button>
-                            </>
-                        )}
-                    </div>
+                    {/* ✅ INTEGRATED ID CARD UPLOAD (AI MODE) */}
+                    <IDCardUpload 
+                        mode="ai" 
+                        isVerified={isIdVerified}
+                        onImageSelect={(base64, verified, role) => {
+                            setIdFile(base64);
+                            if(verified) {
+                                setIsIdVerified(true);
+                                setFormData(prev => ({ ...prev, roleType: role }));
+                            }
+                        }} 
+                    />
                 </div>
             </div>
           )}
@@ -254,7 +185,6 @@ const RequesterRegister = () => {
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              {/* Full Name */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest"><User size={10}/> Full Name</label>
                 <div className="relative group">
@@ -263,7 +193,6 @@ const RequesterRegister = () => {
                 </div>
               </div>
 
-              {/* Mobile Number */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest"><Phone size={10}/> Mobile Number</label>
                 <div className="relative group">
@@ -272,7 +201,6 @@ const RequesterRegister = () => {
                 </div>
               </div>
 
-              {/* Email ID */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest"><Mail size={10}/> Email ID</label>
                 <div className="relative group">
@@ -281,7 +209,6 @@ const RequesterRegister = () => {
                 </div>
               </div>
 
-              {/* Password */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest"><Lock size={10}/> Create Password</label>
                 <div className="relative group">
@@ -300,7 +227,6 @@ const RequesterRegister = () => {
              </p>
           </div>
 
-          {/* Submit Action */}
           <div className="flex flex-col items-center gap-6">
             <button 
                 type="submit" 
