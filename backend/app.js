@@ -9,6 +9,9 @@ const helmet = require('helmet');
 const axios = require('axios');
 const crypto = require('crypto');
 const https = require('https');
+const Tesseract = require('tesseract.js');
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
 const { ObjectId } = mongoose.Types;
 require('dotenv').config();
 
@@ -109,6 +112,11 @@ const donorSchema = new mongoose.Schema({
     donation_count: { type: Number, default: 0 },
     cooldown_email_sent: { type: Boolean, default: false },
     is_available: { type: Boolean, default: true },
+    community: { type: String, default: "Public" }, // 'Public' or 'Periyar University'
+    department: { type: String },
+    role_type: { type: String }, // 'Student' or 'Staff'
+    year: { type: String },
+    is_verified: { type: Boolean, default: false },
     created_at: { type: Date, default: Date.now }
 });
 
@@ -118,6 +126,11 @@ const requesterSchema = new mongoose.Schema({
     phone: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    community: { type: String, default: "Public" },
+    department: { type: String },
+    role_type: { type: String },
+    year: { type: String },
+    is_verified: { type: Boolean, default: false },
     created_at: { type: Date, default: Date.now }
 });
 
@@ -146,7 +159,7 @@ const notificationSchema = new mongoose.Schema({
 const otpVerificationSchema = new mongoose.Schema({
     email: { type: String, required: true },
     otp: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now, expires: 600 } // Auto-delete after 10 minutes
+    timestamp: { type: Date, default: Date.now, expires: 600 } 
 });
 
 const bloodInventorySchema = new mongoose.Schema({
@@ -556,7 +569,11 @@ app.post('/register/donor', async (req, res) => {
             donation_count: 0,
             cooldown_email_sent: false,
             is_available: true,
-            fcm_token: null,
+            community: data.community, // 'Public' or 'Periyar University'
+            department: data.department || null,
+            role_type: data.roleType || null,
+            year: data.year || null,
+            is_verified: data.community === "Periyar University" ? true : false,
             created_at: new Date()
         });
 
@@ -567,6 +584,42 @@ app.post('/register/donor', async (req, res) => {
     } catch (error) {
         console.error('Donor Registration Error:', error);
         res.status(500).json({ message: "Internal Server Error" });
+    }
+});
+
+
+app.post('/api/verify-id-card', upload.single('idCard'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ message: "No image uploaded" });
+
+        console.log("🔍 Processing ID Card OCR...");
+        
+        // Tesseract OCR moolama image-la irukura text-ah edukuroam
+        const { data: { text } } = await Tesseract.recognize(req.file.buffer, 'eng');
+        const extractedText = text.toUpperCase();
+
+        // ✅ ADVANCED KEYWORD MATCHING (Based on your ID Card)
+        const requiredKeywords = ["PERIYAR", "UNIVERSITY", "SALEM"];
+        const isUniversityCard = requiredKeywords.every(key => extractedText.includes(key));
+        
+        // Role detection (Student or Staff)
+        const isStudent = extractedText.includes("STUDENT") || extractedText.includes("IDENTITY CARD");
+
+        if (isUniversityCard) {
+            return res.json({ 
+                success: true, 
+                message: "Periyar University ID Verified!",
+                detectedRole: isStudent ? "Student" : "Staff"
+            });
+        } else {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Verification Failed. Please upload a clear image of your Periyar University ID Card." 
+            });
+        }
+    } catch (error) {
+        console.error("OCR Error:", error);
+        res.status(500).json({ message: "Error processing ID card" });
     }
 });
 
@@ -951,13 +1004,20 @@ app.get('/api/match-donors/:request_id', async (req, res) => {
             return res.status(404).json({ message: "Not Found" });
         }
         
+        // ✅ FIX 1: Get requester details
+        const requester = await Requester.findOne({ unique_id: bloodReq.requester_id });
+        if (!requester) {
+            return res.status(404).json({ message: "Requester not found" });
+        }
+        
         const allowedDonorGroups = BLOOD_COMPATIBILITY[bloodReq.blood_group] || [bloodReq.blood_group];
         const cooldownLimit = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
         
-        // Build query
+        // ✅ FIX 2: Community filter - STRICT ISOLATION
         const query = {
             blood_group: { $in: allowedDonorGroups },
             is_available: true,
+            community: requester.community, // 🎯 Public only sees Public, PU only sees PU
             $or: [
                 { last_donation_date: null },
                 { last_donation_date: { $lte: cooldownLimit } }
@@ -995,8 +1055,7 @@ app.get('/api/match-donors/:request_id', async (req, res) => {
                 blood: d.blood_group,
                 lat: d.lat,
                 lng: d.lng,
-                isExact: isExact,
-                fcm_token: d.fcm_token // Include token for push notifications
+                isExact: isExact
             });
         }
         
@@ -1006,7 +1065,8 @@ app.get('/api/match-donors/:request_id', async (req, res) => {
             request: {
                 lat: bloodReq.lat,
                 lng: bloodReq.lng,
-                blood: bloodReq.blood_group
+                blood: bloodReq.blood_group,
+                community: requester.community // Show community for debugging
             },
             matches: matches
         });

@@ -7,7 +7,8 @@ import SuccessModal from '../components/SuccessModal';
 import OTPModal from '../components/OTPModal'; 
 import { 
   Activity, ShieldCheck, ShieldAlert, User, Mail, 
-  Phone, Lock, Calendar, Droplet, ArrowRight, UserPlus 
+  Phone, Lock, Calendar, Droplet, ArrowRight, UserPlus,
+  School, UploadCloud, Loader2, CheckCircle2
 } from 'lucide-react';
 
 const DonorRegister = () => {
@@ -19,16 +20,23 @@ const DonorRegister = () => {
   const [registeredId, setRegisteredId] = useState(''); 
   const [loading, setLoading] = useState(false);
 
+  // --- UNIVERSITY / OCR STATES ---
+  const [community, setCommunity] = useState('Public');
+  const [idFile, setIdFile] = useState(null);
+  const [isIdVerified, setIsIdVerified] = useState(false);
+  const [verifyingId, setVerifyingId] = useState(false);
+
   // --- MAP & HEALTH STATES ---
   const [position, setPosition] = useState({ lat: 13.0827, lng: 80.2707 });
   const [healthScore, setHealthScore] = useState(100);
   
   const [formData, setFormData] = useState({
     fullName: '', phone: '', email: '', password: '', bloodGroup: '', dob: '',
+    community: 'Public', department: '', roleType: 'Student', year: '',
     weight: true, alcohol: false, surgery: false, tattoo: false, medication: false
   });
 
-  // Health Score Calculation Logic
+  // Health Score Calculation
   useEffect(() => {
     let score = 100;
     if (!formData.weight) score -= 30;
@@ -39,15 +47,49 @@ const DonorRegister = () => {
     setHealthScore(score < 0 ? 0 : score);
   }, [formData]);
 
+  // --- OCR ID VERIFICATION LOGIC ---
+  const handleIdVerify = async () => {
+    if (!idFile) return toast.error("Please select your ID card image first");
+    
+    setVerifyingId(true);
+    const data = new FormData();
+    data.append('idCard', idFile);
+
+    try {
+      const res = await fetch(`${API_URL}/api/verify-id-card`, {
+        method: 'POST',
+        body: data
+      });
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        setIsIdVerified(true);
+        setFormData(prev => ({ ...prev, roleType: result.detectedRole }));
+        toast.success("Periyar University ID Verified Successfully!");
+      } else {
+        toast.error(result.message || "Invalid ID Card. Please upload a clear image.");
+      }
+    } catch (err) {
+      toast.error("OCR Server Error. Please try again.");
+    } finally {
+      setVerifyingId(false);
+    }
+  };
+
   // STEP 1: Initial Submit (Sends OTP)
   const handleInitialSubmit = async (e) => {
     e.preventDefault();
+    
+    // Gatekeeper: University members must verify ID first
+    if (community === 'Periyar University' && !isIdVerified) {
+        return toast.error("Please verify your University ID card to proceed.");
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/verify/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ email: formData.email })
       });
       const data = await res.json();
@@ -57,17 +99,18 @@ const DonorRegister = () => {
         toast.error(data.message || "Failed to send OTP.");
       }
     } catch (err) {
-      toast.error("Error connecting to server. Please check if backend is live.");
+      toast.error("Connection error.");
     } finally {
       setLoading(false);
     }
   };
 
-  // STEP 2: Final Registration (Runs after OTP Success)
+  // STEP 2: Final Registration
   const finalizeRegistration = async () => {
     setLoading(true);
     const finalData = {
       ...formData,
+      community: community,
       lat: position.lat,
       lng: position.lng,
       healthScore: healthScore
@@ -77,7 +120,6 @@ const DonorRegister = () => {
       const res = await fetch(`${API_URL}/register/donor`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(finalData)
       });
       const data = await res.json();
@@ -86,11 +128,11 @@ const DonorRegister = () => {
         setShowOTP(false);
         setShowModal(true);
       } else {
-        toast.error(data.message || "Registration failed. Please try again.");
+        toast.error(data.message || "Registration failed.");
       }
     } catch (err) {
-      toast.error("Registration error occurred.");
-      throw err; // Essential for OTPModal loading state
+      toast.error("Registration error.");
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -99,14 +141,8 @@ const DonorRegister = () => {
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-10 relative animate-in fade-in zoom-in duration-500">
       
-      {/* GLOBAL MODALS */}
       {showOTP && (
-        <OTPModal 
-          email={formData.email} 
-          onVerify={finalizeRegistration} 
-          onClose={() => setShowOTP(false)}
-          onResend={handleInitialSubmit}
-        />
+        <OTPModal email={formData.email} onVerify={finalizeRegistration} onClose={() => setShowOTP(false)} onResend={handleInitialSubmit} />
       )}
 
       {showModal && (
@@ -115,35 +151,103 @@ const DonorRegister = () => {
 
       <div className={`bg-white shadow-2xl rounded-[48px] overflow-hidden border border-gray-100 ${(showModal || showOTP) ? 'blur-sm pointer-events-none' : ''}`}>
         
-        {/* Modern Header Section */}
-        <div className="bg-slate-900 p-8 md:p-12 text-white text-center relative overflow-hidden border-b-8 border-red-600">
+        {/* Header Section */}
+        <div className="bg-slate-900 p-10 md:p-14 text-white text-center relative overflow-hidden border-b-8 border-red-600">
             <div className="bg-white/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/10">
                 <UserPlus size={36} className="text-red-500" />
             </div>
             <h2 className="text-4xl font-black italic tracking-tighter uppercase">Become a Hero</h2>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-2 italic">LifeDrop Hero Registration Portal</p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-2 italic">LifeDrop Hero Registration</p>
             <div className="absolute top-[-20px] left-[-20px] w-32 h-32 bg-red-600/10 rounded-full blur-3xl"></div>
         </div>
 
         <form onSubmit={handleInitialSubmit} className="p-6 md:p-12 space-y-12">
           
-          {/* TOP BLOCK: Identity Details (Responsive Grid) */}
+          {/* COMMUNITY SELECTION */}
+          <div className="max-w-md mx-auto space-y-2">
+            <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1">
+                <School size={12}/> Select Community
+            </label>
+            <select 
+                className="w-full p-5 bg-slate-50 rounded-[24px] border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-black text-slate-700 transition-all shadow-inner"
+                onChange={(e) => { setCommunity(e.target.value); setIsIdVerified(false); }}
+            >
+                <option value="Public">Public (General)</option>
+                <option value="Periyar University">Periyar University, Salem</option>
+            </select>
+          </div>
+
+          {/* --- UNIVERSITY SPECIAL SECTION --- */}
+          {community === 'Periyar University' && (
+            <div className="bg-indigo-50/50 p-8 rounded-[40px] border-2 border-dashed border-indigo-100 animate-in slide-in-from-top duration-500">
+                <h3 className="font-black text-indigo-900 text-lg flex items-center gap-2 uppercase tracking-tighter mb-6">
+                    <School size={20} className="text-indigo-600"/> University Verification
+                </h3>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <div className="space-y-4">
+                        <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">Department</label>
+                            <input type="text" placeholder="e.g. Computer Science" className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm" onChange={e => setFormData({...formData, department: e.target.value})} required />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">Role</label>
+                                <select className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm" onChange={e => setFormData({...formData, roleType: e.target.value})}>
+                                    <option value="Student">Student</option>
+                                    <option value="Staff">Staff</option>
+                                </select>
+                            </div>
+                            {formData.roleType === 'Student' && (
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">Year (Optional)</label>
+                                    <input type="text" placeholder="e.g. 2nd Year" className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm" onChange={e => setFormData({...formData, year: e.target.value})} />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* OCR UPLOAD BOX */}
+                    <div className={`p-6 rounded-[32px] border-2 border-dashed transition-all flex flex-col items-center justify-center text-center gap-4 ${isIdVerified ? 'bg-green-50 border-green-200' : 'bg-white border-indigo-200'}`}>
+                        {isIdVerified ? (
+                            <>
+                                <div className="bg-green-500 p-3 rounded-full text-white shadow-lg animate-bounce"><CheckCircle2 size={32}/></div>
+                                <p className="font-black text-green-700 uppercase text-xs tracking-widest">ID Verified Successfully</p>
+                            </>
+                        ) : (
+                            <>
+                                <UploadCloud size={40} className="text-indigo-300" />
+                                <div className="space-y-1">
+                                    <p className="text-xs font-black text-indigo-900 uppercase">Upload ID Card</p>
+                                    <p className="text-[9px] text-indigo-400 font-bold uppercase">Front side clear image</p>
+                                </div>
+                                <input type="file" accept="image/*" className="hidden" id="id-upload" onChange={(e) => setIdFile(e.target.files[0])} />
+                                <label htmlFor="id-upload" className="cursor-pointer bg-indigo-100 text-indigo-600 px-6 py-2 rounded-full font-black text-[10px] hover:bg-indigo-200 transition">
+                                    {idFile ? idFile.name : "SELECT IMAGE"}
+                                </label>
+                                <button type="button" onClick={handleIdVerify} disabled={verifyingId || !idFile} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-100">
+                                    {verifyingId ? <Loader2 className="animate-spin" size={16}/> : "START AI VERIFICATION"}
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+          )}
+
+          {/* IDENTITY DETAILS BLOCK */}
           <div className="space-y-6">
             <h3 className="font-black text-gray-800 text-lg flex items-center gap-2 uppercase tracking-tighter border-b pb-2 border-gray-50">
                 <User size={18} className="text-red-600"/> Identity Details
             </h3>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {/* Full Name */}
                <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Full Name</label>
                   <div className="relative group">
                     <User className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
-                    <input type="text" placeholder="e.g. John Doe" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, fullName: e.target.value})} required />
+                    <input type="text" placeholder="Your Name" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, fullName: e.target.value})} required />
                   </div>
                </div>
-               
-               {/* Phone */}
                <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Phone Number</label>
                   <div className="relative group">
@@ -151,8 +255,6 @@ const DonorRegister = () => {
                     <input type="tel" placeholder="+91" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, phone: e.target.value})} required />
                   </div>
                </div>
-
-               {/* Email */}
                <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Email Address</label>
                   <div className="relative group">
@@ -160,8 +262,6 @@ const DonorRegister = () => {
                     <input type="email" placeholder="mail@example.com" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, email: e.target.value})} required />
                   </div>
                </div>
-
-               {/* Password */}
                <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Security Password</label>
                   <div className="relative group">
@@ -169,10 +269,8 @@ const DonorRegister = () => {
                     <input type="password" placeholder="••••••••" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, password: e.target.value})} required />
                   </div>
                </div>
-               
-               {/* Blood Group */}
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Select Blood Group</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Blood Group</label>
                   <div className="relative group">
                     <Droplet className="absolute left-4 top-4 text-red-500 transition-colors" size={18}/>
                     <select className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 appearance-none cursor-pointer transition-all shadow-inner" onChange={e => setFormData({...formData, bloodGroup: e.target.value})} required>
@@ -181,12 +279,8 @@ const DonorRegister = () => {
                     </select>
                   </div>
                </div>
-
-               {/* Date of Birth */}
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 flex items-center gap-1 tracking-widest">
-                      <Calendar size={10}/> Date of Birth (DOB)
-                  </label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Date of Birth</label>
                   <div className="relative group">
                     <Calendar className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="date" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-400 transition-all shadow-inner cursor-pointer" onChange={e => setFormData({...formData, dob: e.target.value})} required />
@@ -197,8 +291,7 @@ const DonorRegister = () => {
 
           {/* MAIN GRID: Desktop 2 Columns */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            
-            {/* LEFT SIDE: Location & Legal */}
+            {/* LEFT: Location & Legal */}
             <div className="space-y-8 flex flex-col h-full">
                <div className="flex-1">
                   <h3 className="font-black text-gray-800 text-lg flex items-center gap-2 uppercase tracking-tighter mb-6 border-b pb-2 border-gray-50">
@@ -206,8 +299,6 @@ const DonorRegister = () => {
                   </h3>
                   <LocationPicker position={position} setPosition={setPosition} />
                </div>
-
-               {/* Legal Disclaimer */}
                <div className="flex gap-4 bg-red-50 p-6 rounded-[32px] border border-red-100 mt-auto shadow-sm">
                   <ShieldAlert size={28} className="text-red-600 shrink-0" />
                   <p className="text-[11px] font-bold text-red-800 leading-relaxed uppercase tracking-tight">
@@ -216,9 +307,8 @@ const DonorRegister = () => {
                </div>
             </div>
 
-            {/* RIGHT SIDE: Health & Eligibility */}
+            {/* RIGHT: Health & Submit */}
             <div className="space-y-8 flex flex-col h-full">
-                {/* Health Score Card */}
                 <div className="bg-slate-900 rounded-[40px] p-8 text-white relative overflow-hidden shadow-2xl border-b-4 border-red-600">
                    <Activity className="absolute right-[-10px] bottom-[-10px] opacity-10" size={120} />
                    <p className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em] mb-2">Medical Trust Rating</p>
@@ -231,7 +321,6 @@ const DonorRegister = () => {
                    </div>
                 </div>
 
-                {/* Eligibility Grid */}
                 <div>
                    <h3 className="font-black text-gray-800 text-lg flex items-center gap-2 uppercase tracking-tighter mb-6 border-b pb-2 border-gray-50">
                        <ShieldCheck size={18} className="text-green-600"/> Eligibility Screening
@@ -244,26 +333,14 @@ const DonorRegister = () => {
                    </div>
                 </div>
 
-                {/* Submit Action */}
                 <button 
                     type="submit" 
                     disabled={loading}
                     className="w-full bg-red-600 text-white py-6 rounded-[28px] font-black text-xl shadow-xl shadow-red-100 hover:bg-red-700 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 mt-auto uppercase tracking-widest"
                 >
-                  {loading ? (
-                    <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        PROCESSING...
-                    </div>
-                  ) : (
-                    <>
-                        Get Verified & Join
-                        <ArrowRight size={24} />
-                    </>
-                  )}
+                  {loading ? <div className="flex items-center gap-2"><Loader2 className="animate-spin" size={20}/> PROCESSING...</div> : <><ShieldCheck size={24}/> GET VERIFIED & JOIN</>}
                 </button>
             </div>
-
           </div>
         </form>
       </div>
@@ -271,7 +348,6 @@ const DonorRegister = () => {
   );
 };
 
-// Reusable Health Check Component
 const HealthCheck = ({ label, checked, onChange }) => (
   <label className={`flex justify-between items-center p-5 rounded-3xl border-2 cursor-pointer transition-all duration-300 ${checked ? 'bg-green-50 border-green-200 shadow-sm' : 'bg-gray-50 border-transparent opacity-60'}`}>
     <span className={`text-[10px] font-black uppercase tracking-tight ${checked ? 'text-green-700' : 'text-gray-400'}`}>{label}</span>

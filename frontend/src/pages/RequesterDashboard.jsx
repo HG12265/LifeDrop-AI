@@ -4,15 +4,17 @@ import { API_URL } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
 import { 
   Plus, Clock, CheckCircle2, MapPin, History, 
-  Droplet, Truck, AlertCircle, Link2, ShieldCheck, Phone, Settings, User, MessageSquare
+  Droplet, Truck, AlertCircle, Link2, ShieldCheck, 
+  Phone, Settings, User, MessageSquare, School
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const RequesterDashboard = ({ user, setUser }) => {
+const RequesterDashboard = ({ user }) => {
   const navigate = useNavigate();
   const [history, setHistory] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, completed: 0 });
 
+  // --- MODAL STATES ---
   const [showReceivedModal, setShowReceivedModal] = useState(false);
   const [selectedReqId, setSelectedReqId] = useState(null);
 
@@ -24,18 +26,14 @@ const RequesterDashboard = ({ user, setUser }) => {
     })
     .then(res => res.json())
     .then(data => {
-      
       setHistory(data);
       // Live Statistics calculation
       const total = data.length;
       const pending = data.filter(r => r.status !== 'Completed' && r.status !== 'Rejected').length;
       const completed = data.filter(r => r.status === 'Completed').length;
       setStats({ total, pending, completed });
-      console.log("Full History Data:", data); 
-      setHistory(data);
     })
     .catch(err => console.error("Error fetching history:", err));
-    
   };
 
   useEffect(() => {
@@ -68,6 +66,7 @@ const RequesterDashboard = ({ user, setUser }) => {
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-8 animate-in fade-in duration-500 pb-20">
       
+      {/* CUSTOM RECEIVED CONFIRMATION MODAL */}
       <ConfirmModal 
         isOpen={showReceivedModal}
         type="success"
@@ -78,7 +77,29 @@ const RequesterDashboard = ({ user, setUser }) => {
         onCancel={() => setShowReceivedModal(false)}
       />
 
-      {/* --- 1. HEADER SECTION --- */}
+      {/* --- 1. UNIVERSITY BRANDING BANNER --- */}
+      {user.community === "Periyar University" && (
+        <div className="bg-slate-900 text-white p-8 rounded-[40px] mb-10 relative overflow-hidden border-b-8 border-red-600 shadow-2xl">
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="flex items-center gap-5">
+                    <div className="bg-red-600 p-4 rounded-[24px] shadow-xl shadow-red-900/20">
+                        <School size={32} className="text-white" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-black italic tracking-tighter uppercase">Periyar University Circle</h2>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-1">Verified Institutional Requester</p>
+                    </div>
+                </div>
+                <div className="bg-white/5 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 text-center">
+                    <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">Department</p>
+                    <p className="text-sm font-black uppercase">{user.department || "General"}</p>
+                </div>
+            </div>
+            <School size={180} className="absolute right-[-40px] top-[-40px] opacity-5 -rotate-12" />
+        </div>
+      )}
+
+      {/* --- 2. HEADER SECTION --- */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-8 rounded-[40px] shadow-sm border border-gray-100 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
         
@@ -90,7 +111,7 @@ const RequesterDashboard = ({ user, setUser }) => {
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-3xl font-black text-gray-800 tracking-tighter italic leading-none">
-                Welcome sir, {user.name} 👋
+                Welcome, {user.name} 👋
               </h2>
               <button 
                 onClick={() => navigate('/edit-profile')}
@@ -114,14 +135,14 @@ const RequesterDashboard = ({ user, setUser }) => {
         </button>
       </div>
 
-      {/* 2. STATS CARDS GRID */}
+      {/* 3. STATS CARDS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <StatCard icon={<History size={20}/>} label="Total Requests" value={stats.total} color="bg-slate-900" />
           <StatCard icon={<Droplet size={20}/>} label="Active Requests" value={stats.pending} color="bg-red-600" />
           <StatCard icon={<CheckCircle2 size={20}/>} label="Closed Requests" value={stats.completed} color="bg-green-600" />
       </div>
 
-      {/* 3. REQUEST TIMELINE SECTION */}
+      {/* 4. REQUEST TIMELINE SECTION */}
       <div className="bg-white rounded-[40px] p-6 md:p-10 border border-gray-100 shadow-2xl">
         <h3 className="font-black text-gray-800 text-xl mb-8 flex items-center gap-2 italic uppercase tracking-tighter border-b pb-4">
             <Clock size={24} className="text-red-600" /> Request History & Status
@@ -149,7 +170,7 @@ const RequesterDashboard = ({ user, setUser }) => {
                         <div className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-sm flex items-center gap-2 border ${
                             req.status === 'Completed' ? 'bg-green-50 text-green-600 border-green-100' :
                             req.status === 'On the way' ? 'bg-blue-600 text-white border-transparent animate-pulse shadow-blue-200 shadow-lg' :
-                            req.status === 'Accepted' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                            req.status === 'Accepted' ? 'bg-blue-100 text-blue-600 border-blue-100' :
                             req.status === 'Rejected' ? 'bg-gray-100 text-gray-400' : 'bg-orange-50 text-orange-600 border-orange-100'
                         }`}>
                             {req.status === 'On the way' && <Truck size={12} />}
@@ -180,7 +201,7 @@ const RequesterDashboard = ({ user, setUser }) => {
                     </div>
                 </div>
 
-                {/* --- ✅ NEW: DIRECT CALL & WHATSAPP LOGIC --- */}
+                {/* --- DATA REVEAL LOGIC: Direct Call & WhatsApp --- */}
                 {req.assigned_donor && (
                   <div className="mt-6 p-5 bg-white border-2 border-dashed border-slate-100 rounded-[28px] animate-in slide-in-from-top duration-500">
                       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -195,7 +216,6 @@ const RequesterDashboard = ({ user, setUser }) => {
                           </div>
                           
                           <div className="flex gap-2 w-full sm:w-auto">
-                            {/* 1. CALL BUTTON */}
                             <a 
                                 href={`tel:${req.assigned_donor.phone}`} 
                                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs shadow-xl hover:bg-black transition active:scale-95"
@@ -203,7 +223,6 @@ const RequesterDashboard = ({ user, setUser }) => {
                                 <Phone size={16} fill="white" /> CALL
                             </a>
 
-                            {/* 2. WHATSAPP BUTTON */}
                             <a 
                                 href={`https://wa.me/${req.assigned_donor.phone.replace(/\s/g, '')}?text=${encodeURIComponent(
                                     `Hello ${req.assigned_donor.name}, I am ${user.name} from LifeDrop. I have sent a blood request for patient ${req.patient} (Group: ${req.bloodGroup}) at ${req.hospital}. Please check the app and help if possible! 🙏`

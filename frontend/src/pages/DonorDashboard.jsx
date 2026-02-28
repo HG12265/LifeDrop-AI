@@ -7,7 +7,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import { 
   Bell, Phone, Droplet, User, CheckCircle, 
   XCircle, Package, ShieldCheck, Clock, Award, 
-  Tent, MapPin, Calendar, Link2, Activity, Settings
+  Tent, MapPin, Calendar, Link2, Activity, Settings, School
 } from 'lucide-react';
 
 import { generateCertificate } from '../utils/CertificateGenerator';
@@ -16,7 +16,7 @@ const DonorDashboard = ({ user }) => {
   const navigate = useNavigate(); 
   const [notifications, setNotifications] = useState([]);
   const [bagId, setBagId] = useState("");
-  const [stats, setStats] = useState({ donation_count: 0, is_available: true, days_remaining: 0, is_resting: false });
+  const [stats, setStats] = useState({ donation_count: 0, is_available: true, days_remaining: 0 });
   const [camps, setCamps] = useState([]); 
   const [isToggling, setIsToggling] = useState(false);
 
@@ -26,7 +26,6 @@ const DonorDashboard = ({ user }) => {
   
   const profileUrl = `${window.location.origin}/profile/${user.unique_id}`;
 
-  // 1. Fetching Alerts (Targeted for this donor)
   const fetchAlerts = () => {
     fetch(`${API_URL}/api/donor/targeted-alerts/${user.unique_id}`)
       .then(res => res.json())
@@ -34,7 +33,6 @@ const DonorDashboard = ({ user }) => {
       .catch(err => console.error("Error alerts:", err));
   };
 
-  // 2. Fetching Stats & Cooldown Status
   const fetchStats = () => {
     fetch(`${API_URL}/api/donor/profile-stats/${user.unique_id}`)
       .then(res => res.json())
@@ -42,7 +40,6 @@ const DonorDashboard = ({ user }) => {
       .catch(err => console.error("Error stats:", err));
   };
 
-  // 3. Fetching Upcoming Camps
   const fetchCamps = () => {
     fetch(`${API_URL}/api/camps/all`)
       .then(res => res.json())
@@ -54,21 +51,16 @@ const DonorDashboard = ({ user }) => {
     fetchAlerts();
     fetchStats();
     fetchCamps();
-
-    // Real-time synchronization every 15 seconds
     const interval = setInterval(() => {
       fetchAlerts();
       fetchStats();
     }, 15000); 
-
     return () => clearInterval(interval);
   }, [user.unique_id]);
 
-  // --- HANDLERS ---
-
   const handleToggleStatus = async () => {
     if (stats.days_remaining > 0) {
-        toast.warning(`Medical Rest: ${stats.days_remaining} days remaining.`);
+        toast.info(`Medical Safety: You are in a mandatory rest period for ${stats.days_remaining} more days.`);
         return;
     }
     setIsToggling(true);
@@ -77,7 +69,7 @@ const DonorDashboard = ({ user }) => {
       const data = await res.json();
       if(res.ok) {
         setStats(prev => ({ ...prev, is_available: data.is_available }));
-        toast.success(data.is_available ? "Status: ONLINE" : "Status: OFFLINE");
+        toast.success(data.is_available ? "Visibility: ONLINE" : "Visibility: OFFLINE");
       }
     } catch (err) {
       toast.error("Update failed");
@@ -99,7 +91,7 @@ const DonorDashboard = ({ user }) => {
   };
 
   const triggerDonateModal = (notifId) => {
-    if (!bagId.trim()) return toast.error("Enter Blood Bag Serial Number!");
+    if (!bagId.trim()) return toast.error("Please enter Blood Bag Serial Number!");
     setSelectedNotifId(notifId);
     setShowDonateModal(true);
   };
@@ -113,7 +105,7 @@ const DonorDashboard = ({ user }) => {
         body: JSON.stringify({ notif_id: selectedNotifId, bag_id: bagId })
       });
       if(res.ok) {
-        toast.success("Hero! Donation Recorded. 90-day rest started.");
+        toast.success("Hero! Donation Confirmed. Cooldown Started.");
         setBagId("");
         fetchAlerts();
         fetchStats();
@@ -135,9 +127,30 @@ const DonorDashboard = ({ user }) => {
         onCancel={() => setShowDonateModal(false)}
       />
 
+      {/* --- UNIVERSITY BRANDING BANNER --- */}
+      {user.community === "Periyar University" && (
+        <div className="bg-slate-900 text-white p-8 rounded-[40px] mb-10 relative overflow-hidden border-b-8 border-red-600 shadow-2xl">
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-5">
+                <div className="bg-red-600 p-4 rounded-[24px] shadow-xl shadow-red-900/20">
+                <School size={32} className="text-white" />
+                </div>
+                <div>
+                <h2 className="text-2xl font-black italic tracking-tighter uppercase">Periyar University Circle</h2>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-1">Verified Institutional Member</p>
+                </div>
+            </div>
+            <div className="bg-white/5 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 text-center">
+                <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">Department</p>
+                <p className="text-sm font-black uppercase">{user.department || "General"}</p>
+            </div>
+            </div>
+            <School size={180} className="absolute right-[-40px] top-[-40px] opacity-5 -rotate-12" />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* --- LEFT COLUMN: PROFILE & COOLDOWN --- */}
+        {/* --- LEFT COLUMN: PROFILE & STATS --- */}
         <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-xl text-center relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div>
@@ -162,7 +175,7 @@ const DonorDashboard = ({ user }) => {
                 <div className="mt-8 grid grid-cols-2 gap-4">
                     <div className="bg-red-50 p-4 rounded-3xl border border-red-100 flex flex-col items-center justify-center">
                         <Award className="text-red-600 mb-1" size={18} />
-                        <p className="text-[10px] font-black text-gray-400 uppercase leading-none">Donations</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase leading-none text-center">Donations</p>
                         <p className="text-3xl font-black text-red-600 mt-1">{stats.donation_count}</p>
                     </div>
 
@@ -183,11 +196,12 @@ const DonorDashboard = ({ user }) => {
                     </button>
                 </div>
 
+                {/* --- COOLDOWN INDICATOR FIX --- */}
                 {stats.days_remaining > 0 && (
                     <div className="mt-6 bg-slate-900 text-white p-6 rounded-[32px] text-left relative overflow-hidden shadow-2xl animate-in zoom-in">
                         <Clock className="absolute right-[-10px] bottom-[-10px] opacity-10" size={80} />
-                        <p className="text-[10px] font-black opacity-50 uppercase tracking-widest leading-none mb-1">Medical Recovery</p>
-                        <h4 className="text-3xl font-black mt-1 text-red-500">{stats.days_remaining} Days Left</h4>
+                        <p className="text-[10px] font-black opacity-50 uppercase tracking-widest leading-none mb-1 text-red-500">Medical Recovery</p>
+                        <h4 className="text-3xl font-black mt-1 text-white">{stats.days_remaining} Days Left</h4>
                         <div className="mt-4 w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
                             <div 
                                 className="bg-red-500 h-full transition-all duration-1000" 
@@ -249,7 +263,7 @@ const DonorDashboard = ({ user }) => {
                             </a>
                             <button 
                                 onClick={() => navigate(`/blockchain/${note.request_id}`)}
-                                className="flex-1 bg-white border-2 border-slate-100 text-slate-400 py-4 rounded-2xl font-black text-[10px] flex items-center justify-center gap-2 hover:border-red-200 hover:text-red-500 transition"
+                                className="flex-1 bg-white border-2 border-slate-100 text-slate-400 py-4 rounded-2xl font-black text-[10px] flex items-center justify-center gap-2 hover:border-red-200 hover:text-red-600 transition"
                             >
                                 <Link2 size={16} /> VIEW LIVE LEDGER
                             </button>

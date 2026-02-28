@@ -95,6 +95,9 @@ const DonorMatching = () => {
                     <div>
                         <h2 className="text-2xl md:text-3xl font-black text-gray-800 tracking-tighter italic text-red-600 uppercase">Heroes Found</h2>
                         <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Requesting {data.request.blood} Group</p>
+                      <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-slate-900 text-white uppercase tracking-tighter">
+                          {data.request.community} Circle
+                     </span>
                     </div>
                     <button onClick={() => navigate('/requester-dashboard')} className="bg-slate-50 p-3 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-600 transition shadow-sm">
                         <ArrowLeft size={24} />
