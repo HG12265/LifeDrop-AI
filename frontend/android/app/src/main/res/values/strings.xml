@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LifeDrop</string>
+    <string name="title_activity_main">LifeDrop</string>
+    <string name="package_name">com.lifedrop.app</string>
+    <string name="custom_url_scheme">com.lifedrop.app</string>
+</resources>
