@@ -20294,6 +20294,7 @@ var utils = {
   }
 };
 export {
+  writeSync as a,
   utils as u,
   writeFileSync as w
 };

@@ -7,6 +7,11 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// ✅ CAPACITOR IMPORTS FOR ANDROID DOWNLOAD
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
+
 const UniversityDetails = () => {
   const { type } = useParams(); // donors, requesters, history
   const navigate = useNavigate();
@@ -36,15 +41,42 @@ const UniversityDetails = () => {
     Object.values(item).some(val => String(val).toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // --- EXPORT LOGIC ---
-  const exportExcel = () => {
+  // --- ✅ FIXED EXCEL EXPORT (WEB + ANDROID) ---
+  const exportExcel = async () => {
+    const fileName = `LifeDrop_PU_${type}_Report.xlsx`;
     const ws = XLSX.utils.json_to_sheet(filteredList);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "PU_Data");
-    XLSX.writeFile(wb, `LifeDrop_PU_${type}_Report.xlsx`);
+
+    if (Capacitor.getPlatform() === 'web') {
+      // Browser logic
+      XLSX.writeFile(wb, fileName);
+      toast.success("Excel file downloaded!");
+    } else {
+      // Android logic
+      try {
+        const excelBase64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: excelBase64,
+          directory: Directory.Documents,
+          recursive: true
+        });
+
+        await Share.share({
+          title: 'University Report',
+          url: savedFile.uri,
+          dialogTitle: 'Open Excel Report'
+        });
+      } catch (error) {
+        console.error("Excel Export Error:", error);
+        toast.error("Failed to save Excel file");
+      }
+    }
   };
 
-  const exportPDF = () => {
+  // --- ✅ FIXED PDF EXPORT (WEB + ANDROID) ---
+  const exportPDF = async () => {
     const doc = new jsPDF('l', 'mm', 'a4');
     doc.setFontSize(18);
     doc.text(`Periyar University - ${type.toUpperCase()} REPORT`, 14, 15);
@@ -70,7 +102,34 @@ const UniversityDetails = () => {
       theme: 'grid',
       headStyles: { fillColor: [220, 38, 38] }
     });
-    doc.save(`LifeDrop_PU_${type}_Report.pdf`);
+
+    const fileName = `LifeDrop_PU_${type}_Report.pdf`;
+
+    if (Capacitor.getPlatform() === 'web') {
+      // Browser logic
+      doc.save(fileName);
+      toast.success("PDF Report downloaded!");
+    } else {
+      // Android logic
+      try {
+        const pdfBase64 = doc.output('datauristring').split(',')[1];
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: pdfBase64,
+          directory: Directory.Documents,
+          recursive: true
+        });
+
+        await Share.share({
+          title: 'University PDF Report',
+          url: savedFile.uri,
+          dialogTitle: 'Open PDF Report'
+        });
+      } catch (error) {
+        console.error("PDF Export Error:", error);
+        toast.error("Failed to save PDF file");
+      }
+    }
   };
 
   return (

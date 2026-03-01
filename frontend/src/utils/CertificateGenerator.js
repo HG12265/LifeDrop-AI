@@ -1,6 +1,10 @@
 import jsPDF from 'jspdf';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 
-export const generateCertificate = (donorName, bloodGroup, date, requestId) => {
+// ✅ Added 'async' here
+export const generateCertificate = async (donorName, bloodGroup, date, requestId) => {
     const doc = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
@@ -15,12 +19,10 @@ export const generateCertificate = (donorName, bloodGroup, date, requestId) => {
     doc.rect(0, 0, width, height, 'F');
 
     // 2. ELEGANT BORDERS
-    // Main Navy Border
     doc.setDrawColor(30, 41, 59); // Navy Blue
     doc.setLineWidth(1.5);
     doc.rect(10, 10, width - 20, height - 20);
     
-    // Thin Gold Inner Border
     doc.setDrawColor(180, 83, 9); // Gold
     doc.setLineWidth(0.3);
     doc.rect(13, 13, width - 26, height - 26);
@@ -48,7 +50,6 @@ export const generateCertificate = (donorName, bloodGroup, date, requestId) => {
     doc.setFontSize(50);
     doc.text(donorName, width / 2, 90, { align: "center" });
 
-    // Elegant line under name
     doc.setDrawColor(30, 41, 59);
     doc.setLineWidth(0.5);
     doc.line(width / 2 - 50, 95, width / 2 + 50, 95);
@@ -67,10 +68,10 @@ export const generateCertificate = (donorName, bloodGroup, date, requestId) => {
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(180, 83, 9);
     doc.setLineWidth(0.8);
-    doc.circle(sealX, sealY, 15, 'D'); // Outer Circle
+    doc.circle(sealX, sealY, 15, 'D'); 
     
     doc.setLineWidth(0.2);
-    doc.circle(sealX, sealY, 13, 'D'); // Inner Circle
+    doc.circle(sealX, sealY, 13, 'D'); 
 
     doc.setFontSize(7);
     doc.setTextColor(180, 83, 9);
@@ -85,14 +86,12 @@ export const generateCertificate = (donorName, bloodGroup, date, requestId) => {
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(11);
     
-    // Date (Left)
     doc.setFont("helvetica", "bold");
     doc.text("DATE OF DONATION", 65, 160, { align: "center" });
     doc.setFont("helvetica", "normal");
     doc.text(date || new Date().toLocaleDateString(), 65, 168, { align: "center" });
     doc.line(45, 162, 85, 162);
 
-    // Signatory (Right)
     doc.setFont("times", "bolditalic");
     doc.setFontSize(14);
     doc.text("Admin, LifeDrop AI", 232, 160, { align: "center" });
@@ -102,7 +101,7 @@ export const generateCertificate = (donorName, bloodGroup, date, requestId) => {
     doc.line(210, 162, 255, 162);
 
     // 9. SECURITY FOOTER (Clean Strip)
-    doc.setFillColor(30, 41, 59); // Navy Footer
+    doc.setFillColor(30, 41, 59); 
     doc.rect(0, height - 12, width, 12, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(7);
@@ -111,6 +110,35 @@ export const generateCertificate = (donorName, bloodGroup, date, requestId) => {
     doc.text(`"Every drop matters"`, width / 2, height - 5, { align: "center" });
     doc.text(`Verification Date: ${new Date().toLocaleDateString()}`, width - 15, height - 5, { align: "right" });
 
-    // 10. SAVE
-    doc.save(`LifeDrop_Hero_Certificate_${donorName}.pdf`);
+    // 10. SAVE LOGIC (FIXED)
+    const fileName = `LifeDrop_Hero_${donorName.replace(/\s/g, '_')}.pdf`;
+
+    if (Capacitor.getPlatform() === 'web') {
+        // ✅ Web-la mattum doc.save call pannuvom
+        doc.save(fileName);
+    } else {
+        // ✅ MOBILE LOGIC: Save to Filesystem
+        try {
+            const pdfBase64 = doc.output('datauristring').split(',')[1]; 
+            
+            const savedFile = await Filesystem.writeFile({
+                path: fileName,
+                data: pdfBase64,
+                directory: Directory.Documents,
+                recursive: true
+            });
+
+            // Share popup kaattuvom (Open panna easy-ah irukkum)
+            await Share.share({
+                title: 'LifeDrop Certificate',
+                text: 'Your Blood Donation Certificate',
+                url: savedFile.uri,
+                dialogTitle: 'Open Certificate'
+            });
+        } catch (e) {
+            console.error('Download error', e);
+            // Fallback for mobile browsers inside APK
+            doc.save(fileName);
+        }
+    }
 };

@@ -1,13 +1,14 @@
 import { r as reactExports, j as jsxRuntimeExports, R as React } from "./react-Djfz7pm2.js";
 import { a as ReactDOM } from "./react-dom-DRsyVYWB.js";
 import { t as toast, T as Toaster } from "./sonner-DZ5L_EMP.js";
+import { C as Capacitor, F as Filesystem, D as Directory, S as Share, A as App$1, a as StatusBar } from "./@capacitor-B1wJiuvq.js";
 import { u as useNavigate, a as useLocation, L as Link, b as useParams, c as useSearchParams, B as BrowserRouter, R as Routes, d as Route, N as Navigate } from "./react-router-D4a3fAgc.js";
 import { D as Droplet, a as Download, B as Bell, L as LayoutDashboard, C as CircleUser, b as LogOut, X, M as Menu, c as Megaphone, S as Smartphone, T as Twitter, I as Instagram, G as Github, d as CodeXml, H as Heart, e as MessageSquare, f as Bot, g as Send, h as CircleCheck, i as TriangleAlert, Z as Zap, A as ArrowRight$1, j as Droplets, k as Activity, l as ShieldCheck, m as MapPin, n as CircleCheckBig, o as LoaderCircle, R as RefreshCcw, p as CloudUpload, q as CircleX, U as UserPlus$1, r as School, s as User, P as Phone, t as Mail, u as Lock, v as Calendar, w as ShieldAlert, x as LogIn, y as ArrowLeft, z as Search, E as Maximize2, F as Settings, J as Award, K as Clock, N as Link2, O as Package, Q as Tent, V as Plus, W as History, Y as Truck, _ as CircleAlert, $ as Trash2, a0 as Users, a1 as Database, a2 as FileSpreadsheet, a3 as FileText, a4 as RefreshCw, a5 as Minus, a6 as TrendingUp, a7 as Hash, a8 as KeyRound, a9 as Save } from "./lucide-react-DHORAFXc.js";
 import { L, m as markerShadow, a as markerIcon, b as markerIcon2x } from "./leaflet-QRedCW6X.js";
 import { M as MapContainer, T as TileLayer, u as useMap, a as useMapEvents, b as Marker, P as Popup, C as Circle } from "./react-leaflet-D9ZhHFNZ.js";
 import { Q as QRCodeCanvas } from "./qrcode.react-DMvS8S2a.js";
-import { E } from "./jspdf-CLdCt2qn.js";
-import { u as utils, w as writeFileSync } from "./xlsx-D1htNEEP.js";
+import { E } from "./jspdf-BsjRp7_i.js";
+import { u as utils, w as writeFileSync, a as writeSync } from "./xlsx-CXNIDPrw.js";
 import { a as autoTable } from "./jspdf-autotable-CVI6EX_h.js";
 import { C as Chart, A as ArcElement, p as plugin_tooltip, a as plugin_legend, b as CategoryScale, L as LinearScale, c as BarElement, P as PointElement, d as LineElement, e as plugin_title } from "./chart.js-C3tolcP7.js";
 import { B as Bar, D as Doughnut } from "./react-chartjs-2-D9nlpMcw.js";
@@ -367,6 +368,25 @@ const ConfirmModal = ({
       ] })
     ] })
   ] }) });
+};
+const BroadcastAlert = () => {
+  const [alerts, setAlerts] = reactExports.useState([]);
+  reactExports.useEffect(() => {
+    fetch(`${API_URL}/api/broadcasts`).then((res) => res.json()).then((data) => setAlerts(data));
+  }, []);
+  const dismissAlert = (id) => {
+    setAlerts(alerts.filter((a) => a.id !== id));
+  };
+  if (alerts.length === 0) return null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed bottom-6 right-6 z-[100] flex flex-col gap-3 max-w-sm w-full px-4", children: alerts.map((a) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-red-600 text-white p-5 rounded-[28px] shadow-2xl flex items-start gap-4 animate-in slide-in-from-right duration-500 relative overflow-hidden group", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-white/20 p-2 rounded-full", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Megaphone, { size: 20 }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-black uppercase tracking-widest opacity-60", children: "Emergency Alert" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-bold leading-tight mt-1", children: a.message })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => dismissAlert(a.id), className: "text-white/40 hover:text-white transition", children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 18 }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute bottom-0 left-0 h-1 bg-white/30 w-full animate-out fade-out duration-[10000ms]" })
+  ] }, a.id)) });
 };
 const Home = () => {
   const navigate = useNavigate();
@@ -1749,7 +1769,7 @@ const AdminVerification = () => {
     ] })
   ] });
 };
-const generateCertificate = (donorName, bloodGroup, date, requestId) => {
+const generateCertificate = async (donorName, bloodGroup, date, requestId) => {
   const doc = new E({
     orientation: "landscape",
     unit: "mm",
@@ -1828,7 +1848,29 @@ const generateCertificate = (donorName, bloodGroup, date, requestId) => {
   doc.text(`Blockchain Verified Record ID: LD-TRANS-${requestId}`, 15, height - 5);
   doc.text(`"Every drop matters"`, width / 2, height - 5, { align: "center" });
   doc.text(`Verification Date: ${(/* @__PURE__ */ new Date()).toLocaleDateString()}`, width - 15, height - 5, { align: "right" });
-  doc.save(`LifeDrop_Hero_Certificate_${donorName}.pdf`);
+  const fileName = `LifeDrop_Hero_${donorName.replace(/\s/g, "_")}.pdf`;
+  if (Capacitor.getPlatform() === "web") {
+    doc.save(fileName);
+  } else {
+    try {
+      const pdfBase64 = doc.output("datauristring").split(",")[1];
+      const savedFile = await Filesystem.writeFile({
+        path: fileName,
+        data: pdfBase64,
+        directory: Directory.Documents,
+        recursive: true
+      });
+      await Share.share({
+        title: "LifeDrop Certificate",
+        text: "Your Blood Donation Certificate",
+        url: savedFile.uri,
+        dialogTitle: "Open Certificate"
+      });
+    } catch (e) {
+      console.error("Download error", e);
+      doc.save(fileName);
+    }
+  }
 };
 const DonorDashboard = ({ user }) => {
   const navigate = useNavigate();
@@ -2893,6 +2935,7 @@ const AdminDetails = () => {
   const navigate = useNavigate();
   const [list, setList] = reactExports.useState([]);
   const [searchTerm, setSearchTerm] = reactExports.useState("");
+  const [isExporting, setIsExporting] = reactExports.useState(false);
   reactExports.useEffect(() => {
     let url = "";
     if (category === "users") url = `${API_URL}/api/admin/all-users`;
@@ -2903,14 +2946,43 @@ const AdminDetails = () => {
   const filteredList = list.filter(
     (item) => item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase()) || item.patient && item.patient.toLowerCase().includes(searchTerm.toLowerCase()) || item.blood && item.blood.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  const exportToExcel = () => {
+  const saveAndShare = async (fileName, base64Data, mimeType) => {
+    try {
+      const result = await Filesystem.writeFile({
+        path: fileName,
+        data: base64Data,
+        directory: Directory.Documents,
+        recursive: true
+      });
+      await Share.share({
+        title: "LifeDrop Report",
+        text: `Exported ${category} report`,
+        url: result.uri,
+        dialogTitle: "Open or Share Report"
+      });
+      toast.success("Report ready!");
+    } catch (error) {
+      console.error("Export Error:", error);
+      toast.error("Failed to save file on device.");
+    }
+  };
+  const exportToExcel = async () => {
+    setIsExporting(true);
     const fileName = `LifeDrop_${category}_Report.xlsx`;
     const worksheet = utils.json_to_sheet(filteredList);
     const workbook = utils.book_new();
     utils.book_append_sheet(workbook, worksheet, "Data");
-    writeFileSync(workbook, fileName);
+    if (Capacitor.getPlatform() === "web") {
+      writeFileSync(workbook, fileName);
+      toast.success("Excel downloaded!");
+    } else {
+      const excelBase64 = writeSync(workbook, { bookType: "xlsx", type: "base64" });
+      await saveAndShare(fileName, excelBase64);
+    }
+    setIsExporting(false);
   };
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
+    setIsExporting(true);
     try {
       const doc = new E();
       const title = `LifeDrop ${category.toUpperCase()} Report`;
@@ -2939,12 +3011,21 @@ const AdminDetails = () => {
         theme: "striped",
         headStyles: { fillColor: [220, 38, 38] }
       });
-      doc.save(`LifeDrop_${category}_Report.pdf`);
+      const fileName = `LifeDrop_${category}_Report.pdf`;
+      if (Capacitor.getPlatform() === "web") {
+        doc.save(fileName);
+        toast.success("PDF downloaded!");
+      } else {
+        const pdfBase64 = doc.output("datauristring").split(",")[1];
+        await saveAndShare(fileName, pdfBase64, "application/pdf");
+      }
     } catch (error) {
       console.error("PDF Error:", error);
+      toast.error("Error generating PDF");
     }
+    setIsExporting(false);
   };
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-7xl mx-auto p-4 md:p-10 space-y-6", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-7xl mx-auto p-4 md:p-10 space-y-6 pb-20", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 rounded-[32px] shadow-sm border border-gray-100", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => navigate(-1), className: "bg-slate-100 p-2 rounded-xl text-slate-500 hover:text-red-600 transition", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowLeft, {}) }),
@@ -2958,25 +3039,41 @@ const AdminDetails = () => {
         ] })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: exportToExcel, className: "flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-xl font-black text-xs border border-green-100", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(FileSpreadsheet, { size: 16 }),
-          " EXCEL"
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: exportToPDF, className: "flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-xs hover:bg-black transition shadow-lg", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(FileText, { size: 16 }),
-          " PDF"
-        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            onClick: exportToExcel,
+            disabled: isExporting,
+            className: "flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2.5 rounded-xl font-black text-[10px] border border-green-100 active:scale-95 transition",
+            children: [
+              isExporting ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin", size: 14 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(FileSpreadsheet, { size: 16 }),
+              " EXCEL"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            onClick: exportToPDF,
+            disabled: isExporting,
+            className: "flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl font-black text-[10px] hover:bg-black transition shadow-lg active:scale-95",
+            children: [
+              isExporting ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin", size: 14 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(FileText, { size: 16 }),
+              " PDF"
+            ]
+          }
+        ),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             "input",
             {
               type: "text",
               placeholder: "Search...",
-              className: "p-2 pl-8 bg-slate-50 rounded-xl border-none outline-red-200 font-bold text-xs",
+              className: "p-2.5 pl-8 bg-slate-50 rounded-xl border-none outline-red-200 font-bold text-xs w-full md:w-48",
               onChange: (e) => setSearchTerm(e.target.value)
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "absolute left-2 top-2.5 text-gray-300", size: 14 })
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "absolute left-2.5 top-3 text-gray-300", size: 14 })
         ] })
       ] })
     ] }),
@@ -3038,7 +3135,6 @@ const AdminDetails = () => {
             {
               onClick: () => navigate(`/blockchain/${item.id}`),
               className: "bg-slate-900 text-white p-2 rounded-lg hover:bg-red-600 transition shadow-md",
-              title: "Audit Blockchain",
               children: /* @__PURE__ */ jsxRuntimeExports.jsx(Link2, { size: 16 })
             }
           ) })
@@ -3729,13 +3825,35 @@ const UniversityDetails = () => {
   const filteredList = list.filter(
     (item) => Object.values(item).some((val) => String(val).toLowerCase().includes(searchTerm.toLowerCase()))
   );
-  const exportExcel = () => {
+  const exportExcel = async () => {
+    const fileName = `LifeDrop_PU_${type}_Report.xlsx`;
     const ws = utils.json_to_sheet(filteredList);
     const wb = utils.book_new();
     utils.book_append_sheet(wb, ws, "PU_Data");
-    writeFileSync(wb, `LifeDrop_PU_${type}_Report.xlsx`);
+    if (Capacitor.getPlatform() === "web") {
+      writeFileSync(wb, fileName);
+      toast.success("Excel file downloaded!");
+    } else {
+      try {
+        const excelBase64 = writeSync(wb, { bookType: "xlsx", type: "base64" });
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: excelBase64,
+          directory: Directory.Documents,
+          recursive: true
+        });
+        await Share.share({
+          title: "University Report",
+          url: savedFile.uri,
+          dialogTitle: "Open Excel Report"
+        });
+      } catch (error) {
+        console.error("Excel Export Error:", error);
+        toast.error("Failed to save Excel file");
+      }
+    }
   };
-  const exportPDF = () => {
+  const exportPDF = async () => {
     const doc = new E("l", "mm", "a4");
     doc.setFontSize(18);
     doc.text(`Periyar University - ${type.toUpperCase()} REPORT`, 14, 15);
@@ -3758,7 +3876,29 @@ const UniversityDetails = () => {
       theme: "grid",
       headStyles: { fillColor: [220, 38, 38] }
     });
-    doc.save(`LifeDrop_PU_${type}_Report.pdf`);
+    const fileName = `LifeDrop_PU_${type}_Report.pdf`;
+    if (Capacitor.getPlatform() === "web") {
+      doc.save(fileName);
+      toast.success("PDF Report downloaded!");
+    } else {
+      try {
+        const pdfBase64 = doc.output("datauristring").split(",")[1];
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: pdfBase64,
+          directory: Directory.Documents,
+          recursive: true
+        });
+        await Share.share({
+          title: "University PDF Report",
+          url: savedFile.uri,
+          dialogTitle: "Open PDF Report"
+        });
+      } catch (error) {
+        console.error("PDF Export Error:", error);
+        toast.error("Failed to save PDF file");
+      }
+    }
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-7xl mx-auto p-4 md:p-10 space-y-6 animate-in fade-in duration-500", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 rounded-[32px] shadow-sm border border-gray-100", children: [
@@ -3879,6 +4019,40 @@ const UniversityDetails = () => {
     ] }) }) })
   ] });
 };
+const NativeAppLogic = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  reactExports.useEffect(() => {
+    const setupNativeUI = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await StatusBar.hide();
+        } catch (e) {
+          console.warn("StatusBar plugin not available");
+        }
+      }
+    };
+    const setupBackButton = async () => {
+      if (Capacitor.isNativePlatform()) {
+        App$1.addListener("backButton", (data) => {
+          if (location.pathname === "/") {
+            App$1.exitApp();
+          } else {
+            navigate(-1);
+          }
+        });
+      }
+    };
+    setupNativeUI();
+    setupBackButton();
+    return () => {
+      if (Capacitor.isNativePlatform()) {
+        App$1.removeAllListeners();
+      }
+    };
+  }, [location.pathname, navigate]);
+  return null;
+};
 function App() {
   const [user, setUser] = reactExports.useState(() => {
     const savedUser = localStorage.getItem("lifedrop_user");
@@ -3906,9 +4080,11 @@ function App() {
     toast.success("Logged out successfully!");
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsx(BrowserRouter, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-h-screen bg-slate-50 flex flex-col font-sans relative", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(NativeAppLogic, {}),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Navbar, { user, handleLogout: handleLogoutTrigger }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Toaster, { richColors: true, position: "top-center" }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(ChatBot, {}),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(BroadcastAlert, {}),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       ConfirmModal,
       {

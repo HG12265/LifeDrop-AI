@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster, toast } from 'sonner';
+
+// --- Capacitor Plugins for Native Features ---
+import { StatusBar } from '@capacitor/status-bar';
+import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 // --- Components & Global UI ---
 import Navbar from './components/Navbar';
 import Footer from './components/Footer'; 
 import ChatBot from './components/ChatBot';
-import ConfirmModal from './components/ConfirmModal'; // PUDHU COMPONENT
+import ConfirmModal from './components/ConfirmModal';
+import BroadcastAlert from './components/BroadcastAlert'; // Ensure this exists
+
 // --- Pages ---
 import Home from './pages/Home';
 import DonorRegister from './pages/DonorRegister';
@@ -30,6 +37,52 @@ import EditProfile from './pages/EditProfile';
 import UniversityDashboard from './pages/UniversityDashboard';
 import UniversityDetails from './pages/UniversityDetails';
 
+// --- Sub-Component to handle Native Logic (Needs Router Context) ---
+const NativeAppLogic = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // 1. ✅ HIDE STATUS BAR (TOP)
+    const setupNativeUI = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await StatusBar.hide();
+        } catch (e) {
+          console.warn("StatusBar plugin not available");
+        }
+      }
+    };
+
+    // 2. ✅ HARDWARE BACK BUTTON LOGIC
+    const setupBackButton = async () => {
+      if (Capacitor.isNativePlatform()) {
+        CapApp.addListener('backButton', (data) => {
+          // Home page-la irundha app-ah exit pannuvom
+          if (location.pathname === '/') {
+            CapApp.exitApp();
+          } else {
+            // Vera page-la irundha munnadi irukura page-ku kuttittu povom
+            navigate(-1);
+          }
+        });
+      }
+    };
+
+    setupNativeUI();
+    setupBackButton();
+
+    // Cleanup listeners
+    return () => {
+      if (Capacitor.isNativePlatform()) {
+        CapApp.removeAllListeners();
+      }
+    };
+  }, [location.pathname, navigate]);
+
+  return null; // Intha component UI ethuvum kaattaathu
+};
+
 function App() {
   // --- User Session Logic (LocalStorage Sync) ---
   const [user, setUser] = useState(() => {
@@ -52,12 +105,10 @@ function App() {
     }
   }, [user]);
 
-  // Trigger Modal
   const handleLogoutTrigger = () => {
     setShowLogoutConfirm(true);
   };
 
-  // Final Logout Action
   const finalizeLogout = () => {
     setUser(null);
     localStorage.removeItem('lifedrop_user');
@@ -69,10 +120,14 @@ function App() {
     <Router>
       <div className="min-h-screen bg-slate-50 flex flex-col font-sans relative">
         
+        {/* ✅ Capacitor Native Logic Handler */}
+        <NativeAppLogic />
+
         {/* Fixed & Global UI Elements */}
         <Navbar user={user} handleLogout={handleLogoutTrigger} />
         <Toaster richColors position="top-center" />
         <ChatBot />
+        <BroadcastAlert />
 
         {/* CUSTOM LOGOUT CONFIRMATION MODAL */}
         <ConfirmModal 

@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { API_URL } from '../config'; 
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-// Link2 icon-ah import-la add panni irukken nanba
-import { ArrowLeft, MapPin, ShieldCheck, Phone, Search, FileSpreadsheet, FileText, Link2 } from 'lucide-react';
+import { ArrowLeft, MapPin, ShieldCheck, Phone, Search, FileSpreadsheet, FileText, Link2, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+
+// --- CAPACITOR IMPORTS ---
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
+
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -14,6 +20,7 @@ const AdminDetails = () => {
   const navigate = useNavigate();
   const [list, setList] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     let url = '';
@@ -30,15 +37,54 @@ const AdminDetails = () => {
     (item.blood && item.blood.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const exportToExcel = () => {
+  // --- ✅ HELPER: SAVE & SHARE FILE (FOR ANDROID) ---
+  const saveAndShare = async (fileName, base64Data, mimeType) => {
+    try {
+      // 1. Write file to device storage
+      const result = await Filesystem.writeFile({
+        path: fileName,
+        data: base64Data,
+        directory: Directory.Documents,
+        recursive: true
+      });
+
+      // 2. Open Share Sheet
+      await Share.share({
+        title: 'LifeDrop Report',
+        text: `Exported ${category} report`,
+        url: result.uri,
+        dialogTitle: 'Open or Share Report'
+      });
+      
+      toast.success("Report ready!");
+    } catch (error) {
+      console.error("Export Error:", error);
+      toast.error("Failed to save file on device.");
+    }
+  };
+
+  // --- ✅ EXCEL EXPORT (WEB + ANDROID) ---
+  const exportToExcel = async () => {
+    setIsExporting(true);
     const fileName = `LifeDrop_${category}_Report.xlsx`;
     const worksheet = XLSX.utils.json_to_sheet(filteredList);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
-    XLSX.writeFile(workbook, fileName);
+
+    if (Capacitor.getPlatform() === 'web') {
+      XLSX.writeFile(workbook, fileName);
+      toast.success("Excel downloaded!");
+    } else {
+      // Android Logic: Convert to Base64
+      const excelBase64 = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
+      await saveAndShare(fileName, excelBase64, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    }
+    setIsExporting(false);
   };
 
-  const exportToPDF = () => {
+  // --- ✅ PDF EXPORT (WEB + ANDROID) ---
+  const exportToPDF = async () => {
+    setIsExporting(true);
     try {
       const doc = new jsPDF();
       const title = `LifeDrop ${category.toUpperCase()} Report`;
@@ -71,14 +117,25 @@ const AdminDetails = () => {
         headStyles: { fillColor: [220, 38, 38] }
       });
 
-      doc.save(`LifeDrop_${category}_Report.pdf`);
+      const fileName = `LifeDrop_${category}_Report.pdf`;
+
+      if (Capacitor.getPlatform() === 'web') {
+        doc.save(fileName);
+        toast.success("PDF downloaded!");
+      } else {
+        // Android Logic: Convert to Base64
+        const pdfBase64 = doc.output('datauristring').split(',')[1];
+        await saveAndShare(fileName, pdfBase64, 'application/pdf');
+      }
     } catch (error) {
       console.error("PDF Error:", error);
+      toast.error("Error generating PDF");
     }
+    setIsExporting(false);
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-6">
+    <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-6 pb-20">
       
       {/* Header & Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
@@ -93,15 +150,29 @@ const AdminDetails = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-            <button onClick={exportToExcel} className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-xl font-black text-xs border border-green-100"><FileSpreadsheet size={16}/> EXCEL</button>
-            <button onClick={exportToPDF} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-xs hover:bg-black transition shadow-lg"><FileText size={16}/> PDF</button>
+            <button 
+              onClick={exportToExcel} 
+              disabled={isExporting}
+              className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2.5 rounded-xl font-black text-[10px] border border-green-100 active:scale-95 transition"
+            >
+              {isExporting ? <Loader2 className="animate-spin" size={14}/> : <FileSpreadsheet size={16}/>} EXCEL
+            </button>
+            
+            <button 
+              onClick={exportToPDF} 
+              disabled={isExporting}
+              className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl font-black text-[10px] hover:bg-black transition shadow-lg active:scale-95"
+            >
+              {isExporting ? <Loader2 className="animate-spin" size={14}/> : <FileText size={16}/>} PDF
+            </button>
+
             <div className="relative">
                 <input 
                   type="text" placeholder="Search..." 
-                  className="p-2 pl-8 bg-slate-50 rounded-xl border-none outline-red-200 font-bold text-xs"
+                  className="p-2.5 pl-8 bg-slate-50 rounded-xl border-none outline-red-200 font-bold text-xs w-full md:w-48"
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <Search className="absolute left-2 top-2.5 text-gray-300" size={14} />
+                <Search className="absolute left-2.5 top-3 text-gray-300" size={14} />
             </div>
         </div>
       </div>
@@ -120,7 +191,6 @@ const AdminDetails = () => {
                   <th className="p-6">Requester</th>
                   {type === 'completed' && <th className="p-6">Donor Hero</th>}
                   <th className="p-6">Hospital</th>
-                  {/* Ledger Header added for alignment */}
                   {type === 'completed' && <th className="p-6 text-center">Ledger</th>}
                 </>}
               </tr>
@@ -147,13 +217,11 @@ const AdminDetails = () => {
                     <td className="p-6 text-xs font-bold text-gray-500">{item.requester}</td>
                     {type === 'completed' && <td className="p-6 font-black text-green-600 text-xs uppercase">{item.donor}</td>}
                     <td className="p-6 text-xs italic text-gray-400">{item.hospital}</td>
-                    {/* Blockchain Button Column */}
                     {type === 'completed' && (
                         <td className="p-6 text-center">
                            <button 
                              onClick={() => navigate(`/blockchain/${item.id}`)}
                              className="bg-slate-900 text-white p-2 rounded-lg hover:bg-red-600 transition shadow-md"
-                             title="Audit Blockchain"
                            >
                              <Link2 size={16} />
                            </button>
