@@ -32,7 +32,8 @@ app.use(cors({
     "https://life-drop-ai.vercel.app",
     "capacitor://localhost", 
     "https://localhost",
-    "http://localhost"
+    "http://localhost",
+    "https://lifedrop-ai.netlify.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
