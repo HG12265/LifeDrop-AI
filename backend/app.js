@@ -683,44 +683,54 @@ app.post('/api/admin/approve-donor/:u_id', async (req, res) => {
 });
 
 app.post('/api/verify-id-gemini', async (req, res) => {
-    console.log("🤖 Gemini Verification Started...");
     try {
         let { imageBase64 } = req.body;
-        if (!imageBase64) return res.status(400).json({ message: "No image data received" });
-
         if (imageBase64.includes(',')) {
             imageBase64 = imageBase64.split(',')[1];
         }
 
+        // ✅ UPDATED STRICT PROMPT
+        const prompt = `
+        You are a strict security auditor for Periyar University, Salem.
+        Analyze this ID card image very carefully.
+        
+        STRICT RULES:
+        1. The card MUST be from the main 'PERIYAR UNIVERSITY' campus in Salem.
+        2. If the card belongs to an affiliated college like 'AVS Arts & Science', 'Mahendra', 'Sona', or any other college name, you MUST set is_valid to FALSE.
+        3. Look for the specific header 'PERIYAR UNIVERSITY' and the location 'SALEM'.
+        4. Check if it is a 'Student' or 'Staff' card.
+
+        Answer ONLY in this JSON format: 
+        {
+          "is_valid": true/false, 
+          "role": "Student/Staff", 
+          "reason": "Why you accepted or rejected it"
+        }
+        `;
+
         const payload = {
             contents: [{
                 parts: [
-                    { text: "Analyze this ID card. Is it from 'Periyar University, Salem'? Answer ONLY in JSON: {'is_valid': true/false, 'role': 'Student/Staff'}" },
+                    { text: prompt },
                     { inline_data: { mime_type: "image/jpeg", data: imageBase64 } }
                 ]
             }]
         };
 
-        const response = await axios.post(GEMINI_URL, payload, { timeout: 30000 });
-        
-        // Response check
-        if (!response.data.candidates || !response.data.candidates[0]) {
-            console.log("❌ Gemini returned empty response");
-            return res.status(500).json({ is_valid: false, message: "AI Busy. Try again." });
-        }
-
+        const response = await axios.post(GEMINI_URL, payload);
         const resultText = response.data.candidates[0].content.parts[0].text;
         const cleanJson = resultText.replace(/```json|```/g, "").trim();
         const result = JSON.parse(cleanJson);
 
-        console.log("✅ Gemini Result:", result);
-        res.json(result);
+        console.log("🤖 AI Audit Result:", result); // Debugging-ku useful-ah irukkum
 
+        res.json(result);
     } catch (error) {
-        console.error("🚨 Gemini Route Error:", error.message);
-        res.status(500).json({ message: "AI Verification failed", error: error.message });
+        console.error("Gemini Error:", error);
+        res.status(500).json({ message: "AI Verification failed" });
     }
 });
+
 // Send OTP - FIXED VERSION
 app.post('/api/verify/send-otp', async (req, res) => {
     try {

@@ -48,11 +48,12 @@ const RequesterRegister = () => {
       const result = await res.json();
 
       if (res.ok && result.is_valid) {
-        setIsIdVerified(true);
-        setFormData(prev => ({ ...prev, roleType: result.role || "Student" }));
-        toast.success("AI Verified: Periyar University Member! ✅");
+       setIsIdVerified(true);
+       setFormData(prev => ({ ...prev, roleType: result.role || "Student" }));
+       toast.success("Periyar University ID Verified! ✅");
       } else {
-        toast.error(result.message || "AI could not verify this ID. Try a clearer photo.");
+    // ✅ REASON-AH KAATTUVOM
+       toast.error(result.reason || "Invalid ID Card. Only Main University Campus IDs are accepted.");
       }
     } catch (err) {
       toast.error("AI Verification service error. Try again.");
