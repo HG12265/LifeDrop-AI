@@ -175,11 +175,22 @@ const DonorRegister = () => {
                                 </select>
                             </div>
                             {formData.roleType === 'Student' && (
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">Year (Optional)</label>
-                                    <input type="text" placeholder="e.g. 2nd Year" className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm" onChange={e => setFormData({...formData, year: e.target.value})} />
-                                </div>
-                            )}
+                             <div className="space-y-1.5 animate-in fade-in duration-300">
+                               <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">Year</label>
+                               <select 
+                        className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm appearance-none cursor-pointer" 
+                                 onChange={e => setFormData({...formData, year: e.target.value})}
+                                 required // ✅ Ippo ithu mandatory
+                             >
+                                 <option value="">Select Year</option>
+                                 <option value="I YEAR">I YEAR</option>
+                                 <option value="II YEAR">II YEAR</option>
+                                 <option value="III YEAR">III YEAR</option>
+                                 <option value="IV YEAR">IV YEAR</option>
+                                 <option value="V YEAR">V YEAR</option>
+                             </select>
+                           </div>
+                          )}
                         </div>
                     </div>
 
