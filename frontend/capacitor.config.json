@@ -12,10 +12,10 @@
       "overlay": true
     },
     "SplashScreen": {
-      "launchShowDuration": 3000,
+      "launchShowDuration": 1000,
       "launchAutoHide": true,
       "backgroundColor": "#ffffff",
-      "androidScaleType": "CENTER_CROP",
+      "androidScaleType": "FIT_CENTER",
       "showSpinner": false,
       "splashFullScreen": true,
       "splashImmersive": true

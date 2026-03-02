@@ -91,7 +91,7 @@ define(['./workbox-5a5d9309'], (function (workbox) { 'use strict';
     "revision": "1a32188022a6ed9f8daea085009284dc"
   }, {
     "url": "index.html",
-    "revision": "a814aac48642d6748ad4bb0e0f5ff39c"
+    "revision": "e8fdcc1b3b8957f35b839d94484d034b"
   }, {
     "url": "assets/xlsx-CXNIDPrw.js",
     "revision": null
@@ -165,7 +165,7 @@ define(['./workbox-5a5d9309'], (function (workbox) { 'use strict';
     "url": "assets/index-DHDtqsQN.css",
     "revision": null
   }, {
-    "url": "assets/index-CJfSoV4B.js",
+    "url": "assets/index-CzH3cpvU.js",
     "revision": null
   }, {
     "url": "assets/html2canvas-C17pzFXx.js",

@@ -4073,9 +4073,14 @@ function App() {
   reactExports.useEffect(() => {
     const initNativeApp = async () => {
       if (Capacitor.isNativePlatform()) {
+        await SplashScreen.show({
+          autoHide: true,
+          showDuration: 1e3
+          // ✅ 1 Second
+        });
         setTimeout(async () => {
           await SplashScreen.hide();
-        }, 2e3);
+        }, 1e3);
       }
     };
     initNativeApp();

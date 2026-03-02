@@ -113,12 +113,16 @@ function App() {
   useEffect(() => {
     const initNativeApp = async () => {
       if (Capacitor.isNativePlatform()) {
+        await SplashScreen.show({
+          autoHide: true,
+          showDuration: 1000 // ✅ 1 Second
+        });
         // App load aaga oru 2 seconds time kuduthu, 
         // apram splash screen-ah smooth-ah hide pannuvom.
         // Ippo antha black screen nichayama varaathu.
         setTimeout(async () => {
           await SplashScreen.hide();
-        }, 2000);
+        }, 1000);
       }
     };
 
