@@ -111,22 +111,7 @@ function App() {
   // 2. ✅ NEW: Native App Initialization (Splash Screen Fix)
   // Intha effect app open aagum pothu orey oru vaati mattum run aagum
   useEffect(() => {
-    const initNativeApp = async () => {
-      if (Capacitor.isNativePlatform()) {
-        await SplashScreen.show({
-          autoHide: true,
-          showDuration: 1000 // ✅ 1 Second
-        });
-        // App load aaga oru 2 seconds time kuduthu, 
-        // apram splash screen-ah smooth-ah hide pannuvom.
-        // Ippo antha black screen nichayama varaathu.
-        setTimeout(async () => {
-          await SplashScreen.hide();
-        }, 1000);
-      }
-    };
-
-    initNativeApp();
+    
   }, []);
 
   const handleLogoutTrigger = () => {

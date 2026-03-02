@@ -573,7 +573,7 @@ const __vitePreload = function preload(baseModule, deps, importerUrl) {
 const App = registerPlugin("App", {
   web: () => __vitePreload(() => Promise.resolve().then(() => web$3), true ? void 0 : void 0).then((m) => new m.AppWeb())
 });
-const SplashScreen = registerPlugin("SplashScreen", {
+registerPlugin("SplashScreen", {
   web: () => __vitePreload(() => Promise.resolve().then(() => web$2), true ? void 0 : void 0).then((m) => new m.SplashScreenWeb())
 });
 function s(t) {
@@ -1292,6 +1292,5 @@ export {
   Filesystem as F,
   Share as S,
   __vitePreload as _,
-  SplashScreen as a,
-  StatusBar as b
+  StatusBar as a
 };
