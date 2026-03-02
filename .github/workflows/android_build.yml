@@ -27,7 +27,7 @@ jobs:
         working-directory: frontend
         run: |
           npm install @capacitor/assets -g
-          npx @capacitor/assets generate --android
+          npx @capacitor/assets generate --android --assetPath assets
 
       - name: Build Web Project
         working-directory: frontend
