@@ -26,7 +26,8 @@ jobs:
       - name: Generate App Assets
         working-directory: frontend
         run: |
-          npx @capacitor/assets generate --android --icon-path assets/logo.png --splash-path assets/logo.png
+          npm install @capacitor/assets -g
+          npx @capacitor/assets generate --android
 
       - name: Build Web Project
         working-directory: frontend
