@@ -21,6 +21,13 @@ jobs:
         working-directory: frontend
         run: npm install
 
+      # ✅ STEP: GENERATE APP ICON & SPLASH SCREEN
+      # Intha step thaan unga logo-ah app icon-ah mathum
+      - name: Generate App Assets
+        working-directory: frontend
+        run: |
+          npx @capacitor/assets generate --android --icon-path assets/logo.png --splash-path assets/logo.png
+
       - name: Build Web Project
         working-directory: frontend
         run: npm run build
@@ -48,5 +55,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: LifeDrop-App
-          # Path correctly frontend folder-kulla irukura android-ah point pannum
           path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
