@@ -1,13 +1,13 @@
 import { r as reactExports, j as jsxRuntimeExports, R as React } from "./react-Djfz7pm2.js";
 import { a as ReactDOM } from "./react-dom-DRsyVYWB.js";
 import { t as toast, T as Toaster } from "./sonner-DZ5L_EMP.js";
-import { C as Capacitor, F as Filesystem, D as Directory, S as Share, A as App$1, a as StatusBar } from "./@capacitor-B1wJiuvq.js";
+import { C as Capacitor, F as Filesystem, D as Directory, S as Share, a as SplashScreen, A as App$1, b as StatusBar } from "./@capacitor-tLao2KFi.js";
 import { u as useNavigate, a as useLocation, L as Link, b as useParams, c as useSearchParams, B as BrowserRouter, R as Routes, d as Route, N as Navigate } from "./react-router-D4a3fAgc.js";
 import { D as Droplet, a as Download, B as Bell, L as LayoutDashboard, C as CircleUser, b as LogOut, X, M as Menu, c as Megaphone, S as Smartphone, T as Twitter, I as Instagram, G as Github, d as CodeXml, H as Heart, e as MessageSquare, f as Bot, g as Send, h as CircleCheck, i as TriangleAlert, Z as Zap, A as ArrowRight$1, j as Droplets, k as Activity, l as ShieldCheck, m as MapPin, n as CircleCheckBig, o as LoaderCircle, R as RefreshCcw, p as CloudUpload, q as CircleX, U as UserPlus$1, r as School, s as User, P as Phone, t as Mail, u as Lock, v as Calendar, w as ShieldAlert, x as LogIn, y as ArrowLeft, z as Search, E as Maximize2, F as Settings, J as Award, K as Clock, N as Link2, O as Package, Q as Tent, V as Plus, W as History, Y as Truck, _ as CircleAlert, $ as Trash2, a0 as Users, a1 as Database, a2 as FileSpreadsheet, a3 as FileText, a4 as RefreshCw, a5 as Minus, a6 as TrendingUp, a7 as Hash, a8 as KeyRound, a9 as Save } from "./lucide-react-DHORAFXc.js";
 import { L, m as markerShadow, a as markerIcon, b as markerIcon2x } from "./leaflet-QRedCW6X.js";
 import { M as MapContainer, T as TileLayer, u as useMap, a as useMapEvents, b as Marker, P as Popup, C as Circle } from "./react-leaflet-D9ZhHFNZ.js";
 import { Q as QRCodeCanvas } from "./qrcode.react-DMvS8S2a.js";
-import { E } from "./jspdf-BsjRp7_i.js";
+import { E } from "./jspdf-C4lpLMH-.js";
 import { u as utils, w as writeFileSync, a as writeSync } from "./xlsx-CXNIDPrw.js";
 import { a as autoTable } from "./jspdf-autotable-CVI6EX_h.js";
 import { C as Chart, A as ArcElement, p as plugin_tooltip, a as plugin_legend, b as CategoryScale, L as LinearScale, c as BarElement, P as PointElement, d as LineElement, e as plugin_title } from "./chart.js-C3tolcP7.js";
@@ -4070,6 +4070,16 @@ function App() {
       localStorage.removeItem("lifedrop_user");
     }
   }, [user]);
+  reactExports.useEffect(() => {
+    const initNativeApp = async () => {
+      if (Capacitor.isNativePlatform()) {
+        setTimeout(async () => {
+          await SplashScreen.hide();
+        }, 2e3);
+      }
+    };
+    initNativeApp();
+  }, []);
   const handleLogoutTrigger = () => {
     setShowLogoutConfirm(true);
   };

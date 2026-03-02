@@ -91,7 +91,7 @@ define(['./workbox-5a5d9309'], (function (workbox) { 'use strict';
     "revision": "1a32188022a6ed9f8daea085009284dc"
   }, {
     "url": "index.html",
-    "revision": "74d353d9692e0b03a6b09e1468e92a31"
+    "revision": "a814aac48642d6748ad4bb0e0f5ff39c"
   }, {
     "url": "assets/xlsx-CXNIDPrw.js",
     "revision": null
@@ -156,7 +156,7 @@ define(['./workbox-5a5d9309'], (function (workbox) { 'use strict';
     "url": "assets/jspdf-autotable-CVI6EX_h.js",
     "revision": null
   }, {
-    "url": "assets/jspdf-BsjRp7_i.js",
+    "url": "assets/jspdf-C4lpLMH-.js",
     "revision": null
   }, {
     "url": "assets/iobuffer-BhNq81w-.js",
@@ -165,7 +165,7 @@ define(['./workbox-5a5d9309'], (function (workbox) { 'use strict';
     "url": "assets/index-DHDtqsQN.css",
     "revision": null
   }, {
-    "url": "assets/index-B1bIuRmN.js",
+    "url": "assets/index-CJfSoV4B.js",
     "revision": null
   }, {
     "url": "assets/html2canvas-C17pzFXx.js",
@@ -198,7 +198,7 @@ define(['./workbox-5a5d9309'], (function (workbox) { 'use strict';
     "url": "assets/@kurkle-B7HDCycN.js",
     "revision": null
   }, {
-    "url": "assets/@capacitor-B1wJiuvq.js",
+    "url": "assets/@capacitor-tLao2KFi.js",
     "revision": null
   }, {
     "url": "assets/@babel-B8ot0hyM.js",

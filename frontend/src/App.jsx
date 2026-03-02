@@ -5,6 +5,7 @@ import { Toaster, toast } from 'sonner';
 // --- Capacitor Plugins for Native Features ---
 import { StatusBar } from '@capacitor/status-bar';
 import { App as CapApp } from '@capacitor/app';
+import { SplashScreen } from '@capacitor/splash-screen'; 
 import { Capacitor } from '@capacitor/core';
 
 // --- Components & Global UI ---
@@ -97,6 +98,8 @@ function App() {
   // Modal State
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  // 1. User Session Logic (LocalStorage Sync)
+  // Intha effect 'user' state maarum pothu mattum run aagum
   useEffect(() => {
     if (user) {
       localStorage.setItem('lifedrop_user', JSON.stringify(user));
@@ -104,6 +107,23 @@ function App() {
       localStorage.removeItem('lifedrop_user');
     }
   }, [user]);
+
+  // 2. ✅ NEW: Native App Initialization (Splash Screen Fix)
+  // Intha effect app open aagum pothu orey oru vaati mattum run aagum
+  useEffect(() => {
+    const initNativeApp = async () => {
+      if (Capacitor.isNativePlatform()) {
+        // App load aaga oru 2 seconds time kuduthu, 
+        // apram splash screen-ah smooth-ah hide pannuvom.
+        // Ippo antha black screen nichayama varaathu.
+        setTimeout(async () => {
+          await SplashScreen.hide();
+        }, 2000);
+      }
+    };
+
+    initNativeApp();
+  }, []);
 
   const handleLogoutTrigger = () => {
     setShowLogoutConfirm(true);

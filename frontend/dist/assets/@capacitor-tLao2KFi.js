@@ -571,7 +571,10 @@ const __vitePreload = function preload(baseModule, deps, importerUrl) {
   });
 };
 const App = registerPlugin("App", {
-  web: () => __vitePreload(() => Promise.resolve().then(() => web$2), true ? void 0 : void 0).then((m) => new m.AppWeb())
+  web: () => __vitePreload(() => Promise.resolve().then(() => web$3), true ? void 0 : void 0).then((m) => new m.AppWeb())
+});
+const SplashScreen = registerPlugin("SplashScreen", {
+  web: () => __vitePreload(() => Promise.resolve().then(() => web$2), true ? void 0 : void 0).then((m) => new m.SplashScreenWeb())
 });
 function s(t) {
   t.CapacitorUtils.Synapse = new Proxy(
@@ -678,9 +681,21 @@ class AppWeb extends WebPlugin {
     throw this.unimplemented("Not implemented on web.");
   }
 }
-const web$2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const web$3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   AppWeb
+}, Symbol.toStringTag, { value: "Module" }));
+class SplashScreenWeb extends WebPlugin {
+  async show(_options) {
+    return void 0;
+  }
+  async hide(_options) {
+    return void 0;
+  }
+}
+const web$2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  SplashScreenWeb
 }, Symbol.toStringTag, { value: "Module" }));
 function resolve(path) {
   const posix = path.split("/").filter((item) => item !== ".");
@@ -1277,5 +1292,6 @@ export {
   Filesystem as F,
   Share as S,
   __vitePreload as _,
-  StatusBar as a
+  SplashScreen as a,
+  StatusBar as b
 };
