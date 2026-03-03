@@ -5,8 +5,8 @@
 
     <!-- 2. Namma logo-ah center-la mattum vaikuroam (Zoom aagathu) -->
     <item
-        android:width="180dp"
-        android:height="180dp"
+        android:width="120dp"
+        android:height="120dp"
         android:gravity="center">
         <bitmap
             android:gravity="center"
