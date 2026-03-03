@@ -15,7 +15,7 @@
       "launchShowDuration": 1000,
       "launchAutoHide": true,
       "backgroundColor": "#ffffff",
-      "androidScaleType": "FIT_CENTER",
+      "androidScaleType": "CENTER",
       "splashFullScreen": true,
       "splashImmersive": true
     }
