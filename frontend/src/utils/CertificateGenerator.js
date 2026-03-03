@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
+import { toast } from 'sonner';
 
 // ✅ Added 'async' here
 export const generateCertificate = async (donorName, bloodGroup, date, requestId) => {
@@ -114,13 +115,13 @@ export const generateCertificate = async (donorName, bloodGroup, date, requestId
     const fileName = `LifeDrop_Hero_${donorName.replace(/\s/g, '_')}.pdf`;
 
     if (Capacitor.getPlatform() === 'web') {
-        // ✅ Web-la mattum doc.save call pannuvom
         doc.save(fileName);
+        toast.success("Certificate Downloaded!");
     } else {
-        // ✅ MOBILE LOGIC: Save to Filesystem
         try {
-            const pdfBase64 = doc.output('datauristring').split(',')[1]; 
+            const pdfBase64 = doc.output('datauristring').split(',')[1];
             
+            // 1. FIRST SAVE THE FILE
             const savedFile = await Filesystem.writeFile({
                 path: fileName,
                 data: pdfBase64,
@@ -128,17 +129,26 @@ export const generateCertificate = async (donorName, bloodGroup, date, requestId
                 recursive: true
             });
 
-            // Share popup kaattuvom (Open panna easy-ah irukkum)
-            await Share.share({
-                title: 'LifeDrop Certificate',
-                text: 'Your Blood Donation Certificate',
-                url: savedFile.uri,
-                dialogTitle: 'Open Certificate'
-            });
-        } catch (e) {
-            console.error('Download error', e);
-            // Fallback for mobile browsers inside APK
-            doc.save(fileName);
+            // ✅ SUCCESS: File save aana udane intha message varum
+            toast.success("Certificate saved to Documents!");
+
+            // 2. THEN TRY TO SHARE (Intha part fail aanaalum alert varaathu)
+            try {
+                await Share.share({
+                    title: 'LifeDrop Certificate',
+                    text: 'Your Blood Donation Certificate',
+                    url: savedFile.uri,
+                    dialogTitle: 'Open Certificate'
+                });
+            } catch (shareError) {
+                // User share window-ah close pannuna inga varum. 
+                // Inga namma ethuvum panna thevai illai.
+                console.log("Share dismissed by user");
+            }
+
+        } catch (saveError) {
+            console.error('Save error', saveError);
+            toast.error("Failed to save file on device.");
         }
     }
 };

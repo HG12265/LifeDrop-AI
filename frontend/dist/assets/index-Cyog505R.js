@@ -1851,6 +1851,7 @@ const generateCertificate = async (donorName, bloodGroup, date, requestId) => {
   const fileName = `LifeDrop_Hero_${donorName.replace(/\s/g, "_")}.pdf`;
   if (Capacitor.getPlatform() === "web") {
     doc.save(fileName);
+    toast.success("Certificate Downloaded!");
   } else {
     try {
       const pdfBase64 = doc.output("datauristring").split(",")[1];
@@ -1860,15 +1861,20 @@ const generateCertificate = async (donorName, bloodGroup, date, requestId) => {
         directory: Directory.Documents,
         recursive: true
       });
-      await Share.share({
-        title: "LifeDrop Certificate",
-        text: "Your Blood Donation Certificate",
-        url: savedFile.uri,
-        dialogTitle: "Open Certificate"
-      });
-    } catch (e) {
-      console.error("Download error", e);
-      doc.save(fileName);
+      toast.success("Certificate saved to Documents!");
+      try {
+        await Share.share({
+          title: "LifeDrop Certificate",
+          text: "Your Blood Donation Certificate",
+          url: savedFile.uri,
+          dialogTitle: "Open Certificate"
+        });
+      } catch (shareError) {
+        console.log("Share dismissed by user");
+      }
+    } catch (saveError) {
+      console.error("Save error", saveError);
+      toast.error("Failed to save file on device.");
     }
   }
 };
@@ -2936,36 +2942,19 @@ const AdminDetails = () => {
   const [list, setList] = reactExports.useState([]);
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [isExporting, setIsExporting] = reactExports.useState(false);
-  reactExports.useEffect(() => {
+  const fetchData = () => {
     let url = "";
     if (category === "users") url = `${API_URL}/api/admin/all-users`;
     if (category === "donors") url = `${API_URL}/api/admin/donors-detailed`;
     if (category === "requests") url = `${API_URL}/api/admin/requests-detailed?type=${type}`;
     fetch(url).then((res) => res.json()).then((data) => setList(data));
+  };
+  reactExports.useEffect(() => {
+    fetchData();
   }, [category, type]);
   const filteredList = list.filter(
     (item) => item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase()) || item.patient && item.patient.toLowerCase().includes(searchTerm.toLowerCase()) || item.blood && item.blood.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  const saveAndShare = async (fileName, base64Data, mimeType) => {
-    try {
-      const result = await Filesystem.writeFile({
-        path: fileName,
-        data: base64Data,
-        directory: Directory.Documents,
-        recursive: true
-      });
-      await Share.share({
-        title: "LifeDrop Report",
-        text: `Exported ${category} report`,
-        url: result.uri,
-        dialogTitle: "Open or Share Report"
-      });
-      toast.success("Report ready!");
-    } catch (error) {
-      console.error("Export Error:", error);
-      toast.error("Failed to save file on device.");
-    }
-  };
   const exportToExcel = async () => {
     setIsExporting(true);
     const fileName = `LifeDrop_${category}_Report.xlsx`;
@@ -2976,8 +2965,27 @@ const AdminDetails = () => {
       writeFileSync(workbook, fileName);
       toast.success("Excel downloaded!");
     } else {
-      const excelBase64 = writeSync(workbook, { bookType: "xlsx", type: "base64" });
-      await saveAndShare(fileName, excelBase64);
+      try {
+        const excelBase64 = writeSync(workbook, { bookType: "xlsx", type: "base64" });
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: excelBase64,
+          directory: Directory.Documents,
+          recursive: true
+        });
+        toast.success("Excel report saved to Documents!");
+        try {
+          await Share.share({
+            title: "LifeDrop Report",
+            url: savedFile.uri
+          });
+        } catch (shareError) {
+          console.log("Share dismissed by user");
+        }
+      } catch (error) {
+        console.error("Excel Export Error:", error);
+        toast.error("Failed to save Excel file on device");
+      }
     }
     setIsExporting(false);
   };
@@ -3016,26 +3024,45 @@ const AdminDetails = () => {
         doc.save(fileName);
         toast.success("PDF downloaded!");
       } else {
-        const pdfBase64 = doc.output("datauristring").split(",")[1];
-        await saveAndShare(fileName, pdfBase64, "application/pdf");
+        try {
+          const pdfBase64 = doc.output("datauristring").split(",")[1];
+          const savedFile = await Filesystem.writeFile({
+            path: fileName,
+            data: pdfBase64,
+            directory: Directory.Documents,
+            recursive: true
+          });
+          toast.success("PDF report saved to Documents!");
+          try {
+            await Share.share({
+              title: "LifeDrop PDF Report",
+              url: savedFile.uri
+            });
+          } catch (shareError) {
+            console.log("Share dismissed by user");
+          }
+        } catch (saveError) {
+          console.error("PDF Save Error:", saveError);
+          toast.error("Failed to save PDF file on device");
+        }
       }
     } catch (error) {
-      console.error("PDF Error:", error);
+      console.error("PDF Generation Error:", error);
       toast.error("Error generating PDF");
     }
     setIsExporting(false);
   };
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-7xl mx-auto p-4 md:p-10 space-y-6 pb-20", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-7xl mx-auto p-4 md:p-10 space-y-6 pb-20 animate-in fade-in duration-500", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 rounded-[32px] shadow-sm border border-gray-100", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => navigate(-1), className: "bg-slate-100 p-2 rounded-xl text-slate-500 hover:text-red-600 transition", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowLeft, {}) }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-2xl font-black capitalize text-gray-800", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-2xl font-black capitalize text-gray-800 tracking-tight", children: [
             type === "completed" ? "Life Saves" : type ? type : "Total",
             " ",
             category
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-black text-red-600 uppercase tracking-widest italic", children: "Report Audit" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-black text-red-600 uppercase tracking-widest italic leading-none mt-1", children: "System Audit Mode" })
         ] })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3", children: [
@@ -3044,7 +3071,7 @@ const AdminDetails = () => {
           {
             onClick: exportToExcel,
             disabled: isExporting,
-            className: "flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2.5 rounded-xl font-black text-[10px] border border-green-100 active:scale-95 transition",
+            className: "flex items-center gap-2 bg-green-50 text-green-700 px-5 py-2.5 rounded-xl font-black text-[10px] border border-green-100 active:scale-95 transition uppercase tracking-widest",
             children: [
               isExporting ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin", size: 14 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(FileSpreadsheet, { size: 16 }),
               " EXCEL"
@@ -3056,7 +3083,7 @@ const AdminDetails = () => {
           {
             onClick: exportToPDF,
             disabled: isExporting,
-            className: "flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl font-black text-[10px] hover:bg-black transition shadow-lg active:scale-95",
+            className: "flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-black text-[10px] hover:bg-black transition shadow-lg active:scale-95 uppercase tracking-widest",
             children: [
               isExporting ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin", size: 14 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(FileText, { size: 16 }),
               " PDF"
@@ -3068,8 +3095,8 @@ const AdminDetails = () => {
             "input",
             {
               type: "text",
-              placeholder: "Search...",
-              className: "p-2.5 pl-8 bg-slate-50 rounded-xl border-none outline-red-200 font-bold text-xs w-full md:w-48",
+              placeholder: "Search records...",
+              className: "p-2.5 pl-8 bg-slate-50 rounded-xl border-none outline-red-200 font-bold text-xs w-full md:w-48 shadow-inner",
               onChange: (e) => setSearchTerm(e.target.value)
             }
           ),
@@ -3088,58 +3115,58 @@ const AdminDetails = () => {
         category === "donors" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6", children: "Status" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6", children: "Donor Details" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6", children: "Blood" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6", children: "Health" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6 text-center", children: "Blood" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6 text-center", children: "Health" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6", children: "Location" })
         ] }),
         category === "requests" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6", children: "Patient" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6", children: "Group" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6 text-center", children: "Group" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6", children: "Requester" }),
           type === "completed" && /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6", children: "Donor Hero" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6", children: "Hospital" }),
           type === "completed" && /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-6 text-center", children: "Ledger" })
         ] })
       ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { className: "divide-y divide-gray-50", children: filteredList.map((item, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "hover:bg-slate-50 transition font-medium text-gray-700", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { className: "divide-y divide-gray-50", children: filteredList.length > 0 ? filteredList.map((item, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "hover:bg-slate-50 transition group font-medium text-gray-700", children: [
         category === "users" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 font-black text-gray-800", children: item.name }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-xs", children: item.email }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `px-3 py-1 rounded-full text-[9px] font-black uppercase ${item.role === "Donor" ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"}`, children: item.role }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-xs", children: item.phone })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-xs font-bold text-gray-400", children: item.phone })
         ] }),
         category === "donors" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `px-3 py-1 rounded-full text-[9px] font-black uppercase ${item.status === "Active" ? "bg-green-100 text-green-600" : "bg-orange-100 text-orange-600"}`, children: item.status }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "p-6", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-black text-gray-800", children: item.name }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-gray-400", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-gray-400 uppercase", children: [
               "ID: #",
               item.u_id
             ] })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-xl font-black text-red-600", children: item.blood }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "p-6 font-black text-green-600", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-2xl font-black text-red-600 text-center", children: item.blood }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "p-6 font-black text-green-600 text-center", children: [
             item.health,
             "%"
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-[10px] font-bold text-gray-400", children: item.location })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-[10px] font-bold text-gray-400 italic", children: item.location })
         ] }),
         category === "requests" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 font-black text-gray-800", children: item.patient }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-xl font-black text-red-600", children: item.blood }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-xs font-bold text-gray-500", children: item.requester }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-2xl font-black text-red-600 text-center", children: item.blood }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-xs font-bold text-gray-400 uppercase", children: item.requester }),
           type === "completed" && /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 font-black text-green-600 text-xs uppercase", children: item.donor }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-xs italic text-gray-400", children: item.hospital }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-xs italic text-gray-400 leading-tight max-w-[150px]", children: item.hospital }),
           type === "completed" && /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-6 text-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
             "button",
             {
               onClick: () => navigate(`/blockchain/${item.id}`),
-              className: "bg-slate-900 text-white p-2 rounded-lg hover:bg-red-600 transition shadow-md",
+              className: "bg-slate-900 text-white p-2.5 rounded-xl hover:bg-red-600 transition shadow-md active:scale-95",
               children: /* @__PURE__ */ jsxRuntimeExports.jsx(Link2, { size: 16 })
             }
           ) })
         ] })
-      ] }, idx)) })
+      ] }, idx)) : /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: "10", className: "p-20 text-center text-gray-400 font-bold italic", children: "No matching records found." }) }) })
     ] }) }) })
   ] });
 };
@@ -3842,14 +3869,18 @@ const UniversityDetails = () => {
           directory: Directory.Documents,
           recursive: true
         });
-        await Share.share({
-          title: "University Report",
-          url: savedFile.uri,
-          dialogTitle: "Open Excel Report"
-        });
+        toast.success("Excel report saved to Documents!");
+        try {
+          await Share.share({
+            title: "University Excel Report",
+            url: savedFile.uri
+          });
+        } catch (shareError) {
+          console.log("Share dismissed by user");
+        }
       } catch (error) {
         console.error("Excel Export Error:", error);
-        toast.error("Failed to save Excel file");
+        toast.error("Failed to save Excel file on device");
       }
     }
   };
@@ -3889,14 +3920,18 @@ const UniversityDetails = () => {
           directory: Directory.Documents,
           recursive: true
         });
-        await Share.share({
-          title: "University PDF Report",
-          url: savedFile.uri,
-          dialogTitle: "Open PDF Report"
-        });
+        toast.success("PDF report saved to Documents!");
+        try {
+          await Share.share({
+            title: "University PDF Report",
+            url: savedFile.uri
+          });
+        } catch (shareError) {
+          console.log("Share dismissed by user");
+        }
       } catch (error) {
         console.error("PDF Export Error:", error);
-        toast.error("Failed to save PDF file");
+        toast.error("Failed to save PDF file on device");
       }
     }
   };

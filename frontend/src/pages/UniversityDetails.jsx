@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// ✅ CAPACITOR IMPORTS FOR ANDROID DOWNLOAD
+// ✅ CAPACITOR IMPORTS
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
@@ -49,13 +49,14 @@ const UniversityDetails = () => {
     XLSX.utils.book_append_sheet(wb, ws, "PU_Data");
 
     if (Capacitor.getPlatform() === 'web') {
-      // Browser logic
       XLSX.writeFile(wb, fileName);
       toast.success("Excel file downloaded!");
     } else {
-      // Android logic
       try {
+        // 1. Generate Base64
         const excelBase64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+        
+        // 2. Save to Device
         const savedFile = await Filesystem.writeFile({
           path: fileName,
           data: excelBase64,
@@ -63,14 +64,21 @@ const UniversityDetails = () => {
           recursive: true
         });
 
-        await Share.share({
-          title: 'University Report',
-          url: savedFile.uri,
-          dialogTitle: 'Open Excel Report'
-        });
+        // ✅ SUCCESS: Show toast immediately after save
+        toast.success("Excel report saved to Documents!");
+
+        // 3. Optional Share (Nested try-catch to prevent fake errors)
+        try {
+          await Share.share({
+            title: 'University Excel Report',
+            url: savedFile.uri,
+          });
+        } catch (shareError) {
+          console.log("Share dismissed by user");
+        }
       } catch (error) {
         console.error("Excel Export Error:", error);
-        toast.error("Failed to save Excel file");
+        toast.error("Failed to save Excel file on device");
       }
     }
   };
@@ -106,13 +114,14 @@ const UniversityDetails = () => {
     const fileName = `LifeDrop_PU_${type}_Report.pdf`;
 
     if (Capacitor.getPlatform() === 'web') {
-      // Browser logic
       doc.save(fileName);
       toast.success("PDF Report downloaded!");
     } else {
-      // Android logic
       try {
+        // 1. Generate Base64
         const pdfBase64 = doc.output('datauristring').split(',')[1];
+        
+        // 2. Save to Device
         const savedFile = await Filesystem.writeFile({
           path: fileName,
           data: pdfBase64,
@@ -120,14 +129,21 @@ const UniversityDetails = () => {
           recursive: true
         });
 
-        await Share.share({
-          title: 'University PDF Report',
-          url: savedFile.uri,
-          dialogTitle: 'Open PDF Report'
-        });
+        // ✅ SUCCESS: Show toast immediately after save
+        toast.success("PDF report saved to Documents!");
+
+        // 3. Optional Share
+        try {
+          await Share.share({
+            title: 'University PDF Report',
+            url: savedFile.uri,
+          });
+        } catch (shareError) {
+          console.log("Share dismissed by user");
+        }
       } catch (error) {
         console.error("PDF Export Error:", error);
-        toast.error("Failed to save PDF file");
+        toast.error("Failed to save PDF file on device");
       }
     }
   };
@@ -199,7 +215,6 @@ const UniversityDetails = () => {
               ) : filteredList.length > 0 ? filteredList.map((item, idx) => (
                 <tr key={idx} className="hover:bg-slate-50 transition group">
                   
-                  {/* --- RENDER HISTORY --- */}
                   {type === 'history' && (
                     <>
                       <td className="p-6">
@@ -231,7 +246,6 @@ const UniversityDetails = () => {
                     </>
                   )}
 
-                  {/* --- RENDER DONORS --- */}
                   {type === 'donors' && (
                     <>
                       <td className="p-6"><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${item.status === 'Verified' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>{item.status}</span></td>
@@ -242,7 +256,6 @@ const UniversityDetails = () => {
                     </>
                   )}
 
-                  {/* --- RENDER REQUESTERS --- */}
                   {type === 'requesters' && (
                     <>
                       <td className="p-6 font-black text-gray-800 uppercase">{item.name}</td>
