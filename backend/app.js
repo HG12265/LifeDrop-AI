@@ -1887,32 +1887,55 @@ app.post('/api/chat', async (req, res) => {
 });
 
 // View Blockchain for Request
+
 app.get('/api/blockchain/view/:req_id', async (req, res) => {
     try {
-        const blocks = await BlockchainLedger.find({ request_id: req.params.req_id });
+        const { req_id } = req.params;
+
+        // 1. Fetch all blocks for this request, sorted by timestamp
+        const blocks = await BlockchainLedger.find({ request_id: req_id }).sort({ timestamp: 1 });
         
-        const output = [];
-        
-        for (const b of blocks) {
-            let dataJson;
-            try {
-                dataJson = JSON.parse(b.data);
-            } catch {
-                dataJson = b.data;
-            }
+        const output = blocks.map((b) => {
+            // 2. ✅ INTEGRITY CHECK LOGIC
+            // Block create pannum pothu namma enna order-la hash pannomo, athe order-la ippo check panroam
+            // Order: index + previous_hash + timestamp + data
+            const hashInput = b.index + b.previous_hash + b.timestamp.toISOString() + b.data;
             
-            output.push({
+            // Re-calculating the hash using SHA-256
+            const recalculatedHash = crypto.createHash('sha256').update(hashInput).digest('hex');
+
+            // 3. Compare stored hash with recalculated hash
+            // Oru ezhuthu maarunaalum 'is_tampered' true aayidum
+            const isTampered = b.current_hash !== recalculatedHash;
+
+            // 4. Parse the data string back to JSON for frontend
+            let parsedData;
+            try {
+                parsedData = JSON.parse(b.data);
+            } catch (e) {
+                parsedData = b.data;
+            }
+
+            return {
                 event: b.event,
-                data: dataJson,
-                prev_hash: b.previous_hash.substring(0, 16) + "...",
-                curr_hash: b.current_hash.substring(0, 16) + "...",
-                time: b.timestamp.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-            });
-        }
-        
+                data: parsedData,
+                prev_hash: b.previous_hash, // Full hash anupuroam audit-ku
+                curr_hash: b.current_hash,
+                is_tampered: isTampered,    // ✅ Intha flag thaan UI-ah RED-ah mathum
+                time: b.timestamp.toLocaleString('en-GB', { 
+                    day: '2-digit', 
+                    month: 'short', 
+                    year: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: true 
+                })
+            };
+        });
+
         res.json(output);
     } catch (error) {
-        console.error('Blockchain View Error:', error);
+        console.error('Blockchain Verification Error:', error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 });
