@@ -1076,12 +1076,21 @@ app.get('/api/requester/history/:u_id', async (req, res) => {
 });
 
 // Create Blood Request
+// app.js kulla intha route-ah replace pannunga nanba
 app.post('/api/request/create', async (req, res) => {
     try {
         const data = req.body;
         
+        // ✅ FIX 1: Body-lendhu requester_id-ah edukuroam
+        const requester_id = data.requester_id;
+
+        if (!requester_id) {
+            return res.status(400).json({ message: "Requester ID is missing in request" });
+        }
+
+        // 1. Create the request in MongoDB
         const newReq = await BloodRequest.create({
-            requester_id: data.requester_id,
+            requester_id: requester_id,
             patient_name: data.patientName,
             contact_number: data.contactNumber,
             blood_group: data.bloodGroup,
@@ -1091,21 +1100,23 @@ app.post('/api/request/create', async (req, res) => {
             lat: data.lat,
             lng: data.lng,
             status: 'Pending',
-            timestamp: new Date()
+            created_at: new Date()
         });
-        
+
         const requestId = newReq._id.toString();
-        
+
+        // 2. ✅ FIX 2: Blockchain-la creatorId-ah requester_id-ah anupuroam
         await addBlockchainBlock(requestId, "Request Initialized", {
             patient: data.patientName,
             group: data.bloodGroup,
             hospital: data.hospital
         }, requester_id);
-        
-        res.status(201).json({
-            message: "Request Created Successfully",
-            id: requestId
-        });
+
+        // 3. Log the security event
+        await logSecurityEvent(req, requester_id, "N/A", "BLOOD_REQUEST_CREATED");
+
+        res.status(201).json({ message: "Request Created Successfully", id: requestId });
+
     } catch (error) {
         console.error('Create Request Error:', error);
         res.status(500).json({ message: "Internal Server Error" });
