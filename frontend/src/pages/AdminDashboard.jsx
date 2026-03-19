@@ -213,6 +213,13 @@ const AdminDashboard = () => {
           onClick={() => navigate('/admin/analytics')} 
         />
         <AdminCard 
+          label="Security Vault" 
+          value="Audit" 
+          icon={<Fingerprint size={24}/>} 
+          color="bg-slate-900" 
+          onClick={() => navigate('/admin/security-vault')} 
+        />
+        <AdminCard 
           label="Camp Events" value="Live" 
           icon={<Tent size={24}/>} color="bg-emerald-600" 
           onClick={() => navigate('/admin/camps')} 

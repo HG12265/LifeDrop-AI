@@ -37,6 +37,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import EditProfile from './pages/EditProfile';
 import UniversityDashboard from './pages/UniversityDashboard';
 import UniversityDetails from './pages/UniversityDetails';
+import SecurityVault from './pages/SecurityVault';
 
 // --- Sub-Component to handle Native Logic (Needs Router Context) ---
 const NativeAppLogic = () => {
@@ -199,6 +200,8 @@ function App() {
               path="/admin/analytics" 
               element={user && user.role === 'admin' ? <AdminAnalytics /> : <Navigate to="/login" />} 
             />
+            <Route path="/admin/security-vault" element={user?.role === 'admin' ? <SecurityVault /> : <Navigate to="/login" />} />
+            
             <Route 
               path="/admin/camps" 
               element={user && user.role === 'admin' ? <CampManager /> : <Navigate to="/login" />} 

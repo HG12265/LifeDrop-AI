@@ -211,6 +211,14 @@ const loginAttemptSchema = new mongoose.Schema({
     first_attempt: { type: Date, default: Date.now },
     blocked_until: { type: Date, default: null }
 });
+const auditLogSchema = new mongoose.Schema({
+    user_id: { type: String }, 
+    email: { type: String },
+    action: { type: String }, 
+    ip_address: { type: String },
+    device_info: { type: String },
+    timestamp: { type: Date, default: Date.now }
+});
 
 // ==================== MODELS ====================
 const Donor = mongoose.model('Donor', donorSchema);
@@ -223,7 +231,7 @@ const BlockchainLedger = mongoose.model('BlockchainLedger', blockchainLedgerSche
 const Broadcast = mongoose.model('Broadcast', broadcastSchema);
 const BloodCamp = mongoose.model('BloodCamp', bloodCampSchema);
 const LoginAttempt = mongoose.model('LoginAttempt', loginAttemptSchema);
-
+const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 // ==================== UTILITY FUNCTIONS ====================
 
 // Blood Compatibility Mapping
@@ -470,27 +478,44 @@ function calculateHash(index, prevHash, timestamp, data) {
     return crypto.createHash('sha256').update(value).digest('hex');
 }
 
-// Add Blockchain Block
-async function addBlockchainBlock(requestId, event, dataDict) {
-    const lastBlock = await BlockchainLedger.findOne().sort({ index: -1 });
-    
-    const prevHash = lastBlock ? lastBlock.current_hash : "0";
-    
-    const timestamp = new Date();
-    const dataJson = JSON.stringify(dataDict);
-    
-    const newIndex = lastBlock ? lastBlock.index + 1 : 1;
-    const newHash = calculateHash(newIndex, prevHash, timestamp.toISOString(), dataJson);
-    
-    await BlockchainLedger.create({
-        index: newIndex,
-        request_id: requestId.toString(),
-        event: event,
-        data: dataJson,
-        previous_hash: prevHash,
-        current_hash: newHash,
-        timestamp: timestamp
-    });
+// ✅ UPDATED: Added 'creatorId' parameter for forensics
+async function addBlockchainBlock(requestId, event, dataDict, creatorId) {
+    try {
+        // 1. Fetch the last block to get the previous hash and index
+        const lastBlock = await BlockchainLedger.findOne().sort({ index: -1 });
+        
+        const prevHash = lastBlock ? lastBlock.current_hash : "0";
+        const newIndex = lastBlock ? lastBlock.index + 1 : 1;
+        const timestamp = new Date();
+
+        // 2. ✅ ENRICH DATA: Add creator ID to the data dictionary
+        // Idhu thaan "Who did this" nu blockchain kulla record pannum
+        const enrichedData = { 
+            ...dataDict, 
+            creator: creatorId || "SYSTEM" 
+        };
+        const dataJson = JSON.stringify(enrichedData);
+
+        // 3. CALCULATE HASH
+        // Order: index + prevHash + timestamp + data
+        const hashInput = newIndex + prevHash + timestamp.toISOString() + dataJson;
+        const newHash = crypto.createHash('sha256').update(hashInput).digest('hex');
+
+        // 4. SAVE TO DATABASE
+        await BlockchainLedger.create({
+            index: newIndex,
+            request_id: requestId.toString(),
+            event: event,
+            data: dataJson,
+            previous_hash: prevHash,
+            current_hash: newHash,
+            timestamp: timestamp
+        });
+
+        console.log(`🔗 Blockchain: Block #${newIndex} added for Event: ${event}`);
+    } catch (error) {
+        console.error("❌ Blockchain Error:", error);
+    }
 }
 
 // 1. Helper: Fetch All Unique User Emails
@@ -528,6 +553,23 @@ const sendBulkEmail = async (emails, subject, htmlContent) => {
         console.log(`✅ Bulk Email Sent to ${emails.length} users`);
     } catch (error) {
         console.error("❌ Bulk Email Error:", error.response ? error.response.data : error.message);
+    }
+};
+
+const logSecurityEvent = async (req, userId, email, action) => {
+    try {
+        const newLog = new AuditLog({
+            user_id: userId,
+            email: email,
+            action: action,
+            // Render-la real IP kedaikka x-forwarded-for check panroam
+            ip_address: req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress,
+            device_info: req.headers['user-agent']
+        });
+        await newLog.save();
+        console.log(`🛡️ Security Log: ${action} by ${email}`);
+    } catch (err) {
+        console.error("Logging Error:", err);
     }
 };
 
@@ -813,29 +855,34 @@ app.post('/api/check-otp', async (req, res) => {
 // Login
 app.post('/login', loginLimiter, async (req, res) => {
     try {
-        const ipAddr = req.ip || req.connection.remoteAddress;
+        const ipAddr = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
         
-        // Check if blocked
+        // 1. Check if IP is blocked by penalty system
         const { allowed, message } = await checkLoginBlock(ipAddr);
         if (!allowed) {
+            await logSecurityEvent(req, "BLOCKED_IP", "N/A", "LOGIN_ATTEMPT_WHILE_BLOCKED");
             return res.status(429).json({ success: false, message });
         }
         
         const { email, password, role } = req.body;
         
-        // Admin Check
+        // 2. ADMIN LOGIN CHECK
         if (email === "lifedrop108@gmail.com" && password === "lifedrop123") {
+            // ✅ LOG SUCCESSFUL ADMIN LOGIN
+            await logSecurityEvent(req, "ADMIN", email, "ADMIN_LOGIN_SUCCESS");
+            
             return res.json({
                 message: "Admin Login Success",
                 user: {
                     name: "Super Admin",
                     role: "admin",
-                    unique_id: "ADMIN"
+                    unique_id: "ADMIN",
+                    email: email
                 }
             });
         }
         
-        // User Check
+        // 3. REGULAR USER CHECK (Donor/Requester)
         let user = null;
         if (role === 'donor') {
             user = await Donor.findOne({ email });
@@ -843,9 +890,13 @@ app.post('/login', loginLimiter, async (req, res) => {
             user = await Requester.findOne({ email });
         }
         
+        // 4. PASSWORD VERIFICATION
         if (user && await bcrypt.compare(password, user.password)) {
-            // Login Success - Clear attempts
+            // Login Success - Clear penalty attempts
             await LoginAttempt.deleteOne({ ip: ipAddr });
+            
+            // ✅ LOG SUCCESSFUL USER LOGIN
+            await logSecurityEvent(req, user.unique_id, email, `USER_LOGIN_SUCCESS_${role.toUpperCase()}`);
             
             const responseData = {
                 message: "Login Success",
@@ -856,20 +907,19 @@ app.post('/login', loginLimiter, async (req, res) => {
                     unique_id: user.unique_id,
                     bloodGroup: user.blood_group || "",
                     community: user.community || "Public",
-                    department: user.department || ""
+                    department: user.department || "",
+                    is_verified: user.is_verified // University status-ku
                 }
             };
             
-            if (role === 'donor') {
-                responseData.user.bloodGroup = user.blood_group;
-                // Also return fcm_token if needed
-                responseData.user.fcm_token = user.fcm_token;
-            }
-            
             res.json(responseData);
         } else {
-            // Login Failed - Log attempt
+            // 5. LOGIN FAILED
             await logFailedAttempt(ipAddr);
+            
+            // ✅ LOG FAILED ATTEMPT FOR FORENSICS
+            await logSecurityEvent(req, "UNKNOWN", email || "N/A", "LOGIN_FAILED_INVALID_CREDENTIALS");
+            
             res.status(401).json({ message: "Invalid Credentials" });
         }
     } catch (error) {
@@ -1050,7 +1100,7 @@ app.post('/api/request/create', async (req, res) => {
             patient: data.patientName,
             group: data.bloodGroup,
             hospital: data.hospital
-        });
+        }, requester_id);
         
         res.status(201).json({
             message: "Request Created Successfully",
@@ -1332,7 +1382,7 @@ app.post('/api/notif/respond', async (req, res) => {
             await addBlockchainBlock(notif.request_id.toString(), "Donor Accepted Request", {
                 donor_id: notif.donor_id,
                 time: new Date().toISOString()
-            });
+            }, notif.donor_id); // ✅ Added donor_id as creator
             
             res.json({ message: `Request ${data.status}` });
         } else {
@@ -1387,7 +1437,7 @@ app.post('/api/notif/donate', async (req, res) => {
             await addBlockchainBlock(notif.request_id.toString(), "Blood Bag Dispatched", {
                 bag_id: data.bag_id,
                 donor: donor ? donor.full_name : "Unknown"
-            });
+            }, donor_id);
             
             res.json({ message: "Donation Success!" });
         } else {
@@ -1410,6 +1460,7 @@ app.post('/api/request/complete/:req_id', async (req, res) => {
         }
         
         const bloodReq = await BloodRequest.findById(reqId);
+        const requester_id = bloodReq.requester_id;
         
         if (bloodReq) {
             await BloodRequest.updateOne(
@@ -1424,7 +1475,7 @@ app.post('/api/request/complete/:req_id', async (req, res) => {
             
             await addBlockchainBlock(req.params.req_id, "Blood Received & Process Completed", {
                 status: "Life Saved ✅"
-            });
+            }, requester_id);
             
             res.json({ message: "Process Completed!" });
         } else {
@@ -1470,6 +1521,18 @@ app.get('/api/admin/stats', async (req, res) => {
     } catch (error) {
         console.error('Admin Stats Error:', error);
         res.status(500).json({ message: "Internal Server Error" });
+    }
+});
+
+
+// app.js kulla intha route-ah add pannunga
+app.get('/api/admin/audit-logs', async (req, res) => {
+    try {
+        // Latest logs-ah mela kaatta sort({ timestamp: -1 }) panroam
+        const logs = await AuditLog.find().sort({ timestamp: -1 }).limit(100);
+        res.json(logs);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching security logs" });
     }
 });
 
