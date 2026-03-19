@@ -1395,56 +1395,57 @@ app.post('/api/notif/respond', async (req, res) => {
 });
 
 // Submit Donation
+// app.js kulla intha route-ah update pannunga nanba
 app.post('/api/notif/donate', async (req, res) => {
     try {
-        const data = req.body;
+        const { notif_id, bag_id } = req.body;
         
-        let notif;
-        try {
-            notif = await Notification.findById(data.notif_id);
-        } catch {
-            return res.status(404).json({ message: "Not found" });
+        // 1. Find the notification
+        const notif = await Notification.findById(notif_id);
+        if (!notif) return res.status(404).json({ message: "Notification not found" });
+
+        // 2. Find the donor to get their name and update stats
+        const donor = await Donor.findOne({ unique_id: notif.donor_id });
+        if (!donor) return res.status(404).json({ message: "Donor not found" });
+
+        // 3. Update Notification Status
+        notif.status = 'Donated';
+        notif.blood_bag_id = bag_id;
+        await notif.save();
+
+        // 4. Update Donor Cooldown & Count
+        donor.last_donation_date = new Date();
+        donor.donation_count += 1;
+        donor.cooldown_email_sent = false; // Reset for next reminder
+        await donor.save();
+
+        // 5. Update Main Blood Request Status
+        const bloodReq = await BloodRequest.findById(notif.request_id);
+        if (bloodReq) {
+            bloodReq.status = 'On the way';
+            await bloodReq.save();
         }
-        
-        if (notif) {
-            await Notification.updateOne(
-                { _id: notif._id },
-                { $set: {
-                    status: 'Donated',
-                    blood_bag_id: data.bag_id
-                }}
-            );
-            
-            const donor = await Donor.findOne({ unique_id: notif.donor_id });
-            if (donor) {
-                await Donor.updateOne(
-                    { unique_id: notif.donor_id },
-                    { 
-                        $set: {
-                            last_donation_date: new Date(),
-                            cooldown_email_sent: false
-                        },
-                        $inc: { donation_count: 1 }
-                    }
-                );
-            }
-            
-            await BloodRequest.updateOne(
-                { _id: notif.request_id },
-                { $set: { status: 'On the way' } }
-            );
-            
-            await addBlockchainBlock(notif.request_id.toString(), "Blood Bag Dispatched", {
-                bag_id: data.bag_id,
-                donor: donor ? donor.full_name : "Unknown"
-            }, donor_id);
-            
-            res.json({ message: "Donation Success!" });
-        } else {
-            res.status(404).json({ message: "Not found" });
-        }
+
+        // ✅ FIX: BLOCKCHAIN RECORD (Ensuring all 4 parameters are correct)
+        // requestId, event, dataDict, creatorId
+        await addBlockchainBlock(
+            notif.request_id.toString(), 
+            "Blood Bag Dispatched", 
+            { 
+                bag_id: bag_id, 
+                donor_name: donor.full_name,
+                hospital: bloodReq ? bloodReq.hospital : "N/A"
+            }, 
+            notif.donor_id // This is the creatorId (Donor)
+        );
+
+        // 6. Log the security event
+        await logSecurityEvent(req, notif.donor_id, donor.email, "BLOOD_DONATION_DISPATCHED");
+
+        res.json({ success: true, message: "Donation recorded and Blockchain updated!" });
+
     } catch (error) {
-        console.error('Donation Submit Error:', error);
+        console.error('Donation Error:', error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 });

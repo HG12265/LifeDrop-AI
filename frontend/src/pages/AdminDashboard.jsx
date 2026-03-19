@@ -6,7 +6,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import { 
   Users, Droplets, Activity, Clock, Megaphone, 
   Send, Trash2, ShieldCheck, AlertCircle, Database, 
-  Tent, X, School, LayoutDashboard, Search
+  Tent, X, School, LayoutDashboard, Search, Fingerprint
 } from 'lucide-react';
 
 const AdminDashboard = () => {
