@@ -300,9 +300,14 @@ async function logFailedAttempt(ipAddress) {
 }
 
 // Send Brevo OTP Email - FIXED VERSION
+
 async function sendBrevoOTP(email, otp) {
     const url = "https://api.brevo.com/v3/smtp/email";
     
+    // 1. ✅ DEBUG LOGS (Function start-laye check pannuvom)
+    console.log(`📡 Attempting to send OTP to: ${email}`);
+    console.log(`🔑 API Key used: ${BREVO_API_KEY ? BREVO_API_KEY.substring(0, 15) + "..." : "NOT FOUND ❌"}`);
+
     const payload = {
         sender: { name: "LifeDrop AI", email: SENDER_EMAIL },
         to: [{ email: email }],
@@ -321,33 +326,34 @@ async function sendBrevoOTP(email, otp) {
     
     const headers = {
         "accept": "application/json",
-        "api-key": BREVO_API_KEY,
+        "api-key": BREVO_API_KEY, // Inga variable correctly use aaganum
         "content-type": "application/json"
     };
 
     try {
-        // Add timeout and keepAlive to prevent ECONNRESET
         const response = await axios.post(url, payload, { 
             headers,
-            timeout: 10000, // 10 seconds timeout
+            timeout: 10000,
             httpsAgent: new (require('https').Agent)({ keepAlive: true })
         });
         
         if (response.status <= 202) {
             console.log(`✅ OTP Sent Successfully to ${email}`);
             return true;
-        } else {
-            console.log(`❌ Brevo Error: ${response.status} - ${JSON.stringify(response.data)}`);
-            return false;
         }
     } catch (error) {
-        console.log(`❌ Email Error for ${email}: ${error.message}`);
+        // 2. ✅ DETAILED ERROR LOGGING
+        if (error.response) {
+            // Brevo server thara actual error message
+            console.log(`❌ Brevo API Error (${error.response.status}):`, JSON.stringify(error.response.data));
+        } else {
+            console.log(`❌ Network/Request Error: ${error.message}`);
+        }
         
-        // Special handling for ECONNRESET
+        // Retry logic for ECONNRESET
         if (error.code === 'ECONNRESET') {
             console.log('🔄 Connection reset detected - retrying once...');
             try {
-                // Retry once after 1 second
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 const retryResponse = await axios.post(url, payload, { headers });
                 if (retryResponse.status <= 202) {
@@ -359,9 +365,8 @@ async function sendBrevoOTP(email, otp) {
             }
         }
         
-        // Fallback - log OTP to console for development
         console.log(`📧 FALLBACK - OTP for ${email}: ${otp}`);
-        return false;
+        return false; // Return statement kadaisiya irukanum
     }
 }
 
