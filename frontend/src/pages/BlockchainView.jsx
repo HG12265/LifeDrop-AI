@@ -4,8 +4,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Link2, ShieldCheck, Clock, Hash, ShieldAlert, AlertTriangle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { toast } from 'sonner';
+import { downloadProfessionalIDCard } from '../utils/DownloadIDCard';
+import { useTranslation } from 'react-i18next';
 
 const BlockchainView = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [chain, setChain] = useState([]);
@@ -26,7 +29,7 @@ const BlockchainView = () => {
         const tampered = data.some(block => block.is_tampered);
         if (tampered) {
           setIsSecure(false);
-          toast.error("SECURITY ALERT: Data Tampering Detected in Ledger!", { duration: 10000 });
+          toast.error(t('blockchain.toast_secure_alert'), { duration: 10000 });
         }
       } catch (err) {
         console.error(err);
@@ -40,7 +43,7 @@ const BlockchainView = () => {
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
       <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-      <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Verifying Chain Integrity...</p>
+      <p className="font-black text-slate-400 uppercase tracking-widest text-xs">{t('blockchain.loading')}</p>
     </div>
   );
 
@@ -57,11 +60,11 @@ const BlockchainView = () => {
            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-xl mb-4 transition-colors duration-500 ${isSecure ? 'bg-green-100 text-green-600 shadow-green-100' : 'bg-red-100 text-red-600 shadow-red-100 animate-pulse'}`}>
               {isSecure ? <ShieldCheck size={40} /> : <ShieldAlert size={40} />}
            </div>
-           <h2 className="text-4xl font-black italic tracking-tighter text-slate-900">LifeDrop Immutable Ledger</h2>
+           <h2 className="text-4xl font-black italic tracking-tighter text-slate-900">{t('blockchain.ledger_title')}</h2>
            <div className="flex items-center justify-center gap-2 mt-2">
               <div className={`w-2 h-2 rounded-full ${isSecure ? 'bg-green-500' : 'bg-red-500 animate-ping'}`}></div>
               <p className={`text-[10px] font-black uppercase tracking-[0.3em] ${isSecure ? 'text-green-600' : 'text-red-600'}`}>
-                Status: {isSecure ? 'System Integrity Verified' : 'CRITICAL: CHAIN BROKEN'}
+                {isSecure ? t('blockchain.status_verified') : t('blockchain.status_broken')}
               </p>
            </div>
         </div>
@@ -71,16 +74,17 @@ const BlockchainView = () => {
       {/* --- QR & INFO CARD --- */}
       <div className="bg-slate-900 rounded-[48px] p-8 md:p-12 text-white flex flex-col lg:flex-row items-center gap-10 shadow-2xl relative overflow-hidden">
          <div className="bg-white p-4 rounded-[32px] shadow-2xl transform hover:scale-105 transition-transform duration-500">
-            <QRCodeCanvas value={trackingUrl} size={160} level={"H"} includeMargin={true} />
+            <QRCodeCanvas id="blockchain-qr-code" value={trackingUrl} size={160} level={"H"} includeMargin={true} />
          </div>
          <div className="space-y-4 text-center lg:text-left">
-            <h4 className="text-2xl font-black italic text-red-500 uppercase tracking-tighter">Digital Asset Verification</h4>
+            <h4 className="text-2xl font-black italic text-red-500 uppercase tracking-tighter">{t('blockchain.asset_title')}</h4>
             <p className="text-slate-400 text-sm leading-relaxed max-w-md">
-              This QR code is linked to a unique SHA-256 cryptographic hash. Scan it on the blood bag to verify the donor's medical history and the entire donation lifecycle.
+              {t('blockchain.asset_desc')}
             </p>
             <div className="flex flex-wrap justify-center lg:justify-start gap-3 pt-2">
-               <span className="bg-white/10 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10">Algorithm: SHA-256</span>
-               <span className="bg-white/10 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10">Security: AES-256</span>
+               <span className="bg-white/10 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10">{t('blockchain.algo_tag')}</span>
+               <span className="bg-white/10 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10">{t('blockchain.sec_tag')}</span>
+               <button onClick={() => downloadProfessionalIDCard("blockchain-qr-code", "THIS IS BLOOD DONATION DIGITAL ID CARD")} className="bg-red-600 text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-red-500 hover:bg-red-700 transition shadow-lg shadow-red-900/50">{t('blockchain.btn_download')}</button>
             </div>
          </div>
          <Link2 size={200} className="absolute right-[-50px] bottom-[-50px] opacity-5 -rotate-12" />
@@ -105,7 +109,7 @@ const BlockchainView = () => {
                     </span>
                     {block.is_tampered && (
                         <p className="text-red-600 font-black text-[10px] mt-2 flex items-center gap-1 animate-pulse">
-                            <ShieldAlert size={12}/> DATA TAMPERED DETECTED
+                            <ShieldAlert size={12}/> {t('blockchain.tamper_alert')}
                         </p>
                     )}
                 </div>
@@ -140,8 +144,8 @@ const BlockchainView = () => {
         <div className="bg-red-600 text-white p-6 rounded-[32px] shadow-2xl flex items-center gap-4 animate-bounce">
            <ShieldAlert size={32} />
            <div>
-              <h4 className="font-black uppercase italic">Security Breach Detected</h4>
-              <p className="text-xs font-bold opacity-80">The ledger hashes do not match the current data. This record is no longer trusted.</p>
+              <h4 className="font-black uppercase italic">{t('blockchain.breach_title')}</h4>
+              <p className="text-xs font-bold opacity-80">{t('blockchain.breach_desc')}</p>
            </div>
         </div>
       )}

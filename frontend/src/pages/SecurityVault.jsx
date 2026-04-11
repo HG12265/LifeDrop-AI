@@ -6,6 +6,7 @@ import {
   ShieldAlert, ArrowLeft, Search, FileSpreadsheet, FileText, 
   Clock, Globe, Monitor, User, Fingerprint, Loader2, Trash2
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 // ✅ CAPACITOR IMPORTS FOR EXPORT
 import { Filesystem, Directory } from '@capacitor/filesystem';
@@ -16,6 +17,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const SecurityVault = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,7 @@ const SecurityVault = () => {
       const data = await res.json();
       setLogs(data);
     } catch (err) {
-      toast.error("Failed to access security vault");
+      toast.error(t('security_vault.toast_access_fail'));
     } finally {
       setLoading(false);
     }
@@ -57,11 +59,11 @@ const SecurityVault = () => {
         directory: Directory.Documents,
         recursive: true
       });
-      toast.success("Audit report saved!");
+      toast.success(t('security_vault.toast_audit_saved'));
       try {
         await Share.share({ title: 'Security Audit', url: result.uri });
       } catch (e) { console.log("Share dismissed"); }
-    } catch (error) { toast.error("Export failed"); }
+    } catch (error) { toast.error(t('security_vault.toast_export_fail')); }
   };
 
   const exportExcel = async () => {
@@ -83,7 +85,7 @@ const SecurityVault = () => {
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-screen bg-slate-900 text-white">
       <Loader2 className="animate-spin text-red-600 mb-4" size={40} />
-      <p className="font-black uppercase tracking-[0.3em] text-xs">Decrypting Security Logs...</p>
+      <p className="font-black uppercase tracking-[0.3em] text-xs">{t('security_vault.loading')}</p>
     </div>
   );
 
@@ -97,19 +99,19 @@ const SecurityVault = () => {
             <ArrowLeft size={24} />
           </button>
           <div>
-            <h2 className="text-3xl font-black italic tracking-tighter uppercase">Security Vault</h2>
-            <p className="text-[10px] font-bold text-red-500 uppercase tracking-[0.3em] mt-1">Advanced System Audit Trail</p>
+            <h2 className="text-3xl font-black italic tracking-tighter uppercase">{t('security_vault.title')}</h2>
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-[0.3em] mt-1">{t('security_vault.subtitle')}</p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 relative z-10 w-full lg:w-auto">
             <button onClick={exportExcel} className="flex-1 lg:flex-none bg-white/10 hover:bg-green-600 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2">
-                <FileSpreadsheet size={16}/> Excel Audit
+                <FileSpreadsheet size={16}/> {t('security_vault.btn_excel')}
             </button>
             <div className="relative flex-1 lg:w-64">
                 <Search className="absolute left-4 top-3.5 text-slate-500" size={18} />
                 <input 
-                  type="text" placeholder="Search by IP, Email or Action..." 
+                  type="text" placeholder={t('security_vault.search_ph')}
                   className="w-full p-4 pl-12 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-red-600 focus:bg-white/10 transition-all font-bold text-sm"
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -124,11 +126,11 @@ const SecurityVault = () => {
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-800 text-white text-[10px] uppercase tracking-[0.2em] font-black">
               <tr>
-                <th className="p-6">Timestamp</th>
-                <th className="p-6">User Identity</th>
-                <th className="p-6">Action Performed</th>
-                <th className="p-6">Network (IP)</th>
-                <th className="p-6">Device Info</th>
+                <th className="p-6">{t('security_vault.th_time')}</th>
+                <th className="p-6">{t('security_vault.th_user')}</th>
+                <th className="p-6">{t('security_vault.th_action')}</th>
+                <th className="p-6">{t('security_vault.th_network')}</th>
+                <th className="p-6">{t('security_vault.th_device')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -147,7 +149,7 @@ const SecurityVault = () => {
                         </div>
                         <div>
                             <p className="font-black text-gray-800 text-sm">{log.email}</p>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">ID: {log.user_id}</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{t('security_vault.id_prefix')}: {log.user_id}</p>
                         </div>
                     </div>
                   </td>
@@ -180,7 +182,7 @@ const SecurityVault = () => {
         {filteredLogs.length === 0 && (
             <div className="py-20 text-center flex flex-col items-center">
                 <ShieldAlert size={48} className="text-slate-200 mb-4" />
-                <p className="text-slate-400 font-black uppercase tracking-widest">No Security Logs Found</p>
+                <p className="text-slate-400 font-black uppercase tracking-widest">{t('security_vault.empty_state')}</p>
             </div>
         )}
       </div>
@@ -189,9 +191,9 @@ const SecurityVault = () => {
       <div className="bg-red-50 p-6 rounded-[32px] border border-red-100 flex items-center gap-4">
         <Fingerprint className="text-red-600" size={32} />
         <div>
-            <h4 className="text-sm font-black text-red-900 uppercase tracking-tight">Immutable Audit Protocol</h4>
+            <h4 className="text-sm font-black text-red-900 uppercase tracking-tight">{t('security_vault.footer_title')}</h4>
             <p className="text-[10px] font-bold text-red-700 opacity-70 leading-relaxed uppercase">
-                Every system interaction is cryptographically logged. These records are used to verify blockchain integrity and detect unauthorized database access.
+                {t('security_vault.footer_text')}
             </p>
         </div>
       </div>

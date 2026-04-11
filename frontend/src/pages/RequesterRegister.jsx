@@ -9,8 +9,10 @@ import {
   User, Mail, Phone, Lock, ShieldAlert, ArrowRight, 
   UserPlus, ShieldCheck, School, Loader2, Calendar, CheckCircle2
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const RequesterRegister = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   
   // --- MODAL & LOADING STATES ---
@@ -33,7 +35,7 @@ const RequesterRegister = () => {
 
   // --- AI ID VERIFICATION LOGIC ---
   const handleAiVerify = async () => {
-    if (!idFile) return toast.error("Please select your ID card image first");
+    if (!idFile) return toast.error(t('req_reg.toast_id_req'));
     
     setVerifyingId(true);
     try {
@@ -50,13 +52,13 @@ const RequesterRegister = () => {
       if (res.ok && result.is_valid) {
        setIsIdVerified(true);
        setFormData(prev => ({ ...prev, roleType: result.role || "Student" }));
-       toast.success("Periyar University ID Verified! ✅");
+       toast.success(t('req_reg.toast_id_success'));
       } else {
     // ✅ REASON-AH KAATTUVOM
-       toast.error(result.reason || "Invalid ID Card. Only Main University Campus IDs are accepted.");
+       toast.error(result.reason || t('req_reg.toast_id_err_backend'));
       }
     } catch (err) {
-      toast.error("AI Verification service error. Try again.");
+      toast.error(t('req_reg.toast_id_err_frontend'));
     } finally {
       setVerifyingId(false);
     }
@@ -67,7 +69,7 @@ const RequesterRegister = () => {
     e.preventDefault();
     
     if (community === 'Periyar University' && !isIdVerified) {
-        return toast.error("Please verify your University ID card with AI to proceed.");
+        return toast.error(t('req_reg.toast_id_verify_first'));
     }
 
     setLoading(true);
@@ -80,12 +82,12 @@ const RequesterRegister = () => {
       const data = await res.json();
       if (res.ok) {
         setShowOTP(true);
-        toast.success("Verification code sent to your email!");
+        toast.success(t('donor_reg.toast_otp_sent'));
       } else {
-        toast.error(data.message || "Failed to send OTP.");
+        toast.error(data.message || t('donor_reg.toast_otp_fail'));
       }
     } catch (err) {
-      toast.error("Connection error. Is Flask running?");
+      toast.error(t('req_reg.toast_conn_err'));
     } finally {
       setLoading(false);
     }
@@ -112,10 +114,10 @@ const RequesterRegister = () => {
         setShowOTP(false);
         setShowModal(true);
       } else {
-        toast.error(data.message || "Registration failed.");
+        toast.error(data.message || t('req_reg.toast_reg_fail'));
       }
     } catch (err) {
-      toast.error("Registration error. Try again.");
+      toast.error(t('req_reg.toast_reg_err'));
     } finally {
       setLoading(false);
     }
@@ -139,8 +141,8 @@ const RequesterRegister = () => {
             <div className="bg-white/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/10">
                 <UserPlus size={36} className="text-red-500" />
             </div>
-            <h2 className="text-4xl font-black italic tracking-tighter uppercase">Requester Sign Up</h2>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-2 italic">LifeDrop Emergency Portal</p>
+            <h2 className="text-4xl font-black italic tracking-tighter uppercase">{t('req_reg.title')}</h2>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-2 italic">{t('req_reg.subtitle')}</p>
             <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-red-600/10 rounded-full blur-3xl"></div>
         </div>
 
@@ -149,15 +151,15 @@ const RequesterRegister = () => {
           {/* COMMUNITY SELECTION */}
           <div className="max-w-md mx-auto space-y-2">
             <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1">
-                <School size={12}/> Select Community
+                <School size={12}/> {t('donor_reg.select_community')}
             </label>
             <select 
                 className="w-full p-5 bg-slate-50 rounded-[24px] border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-black text-slate-700 transition-all shadow-inner"
                 onChange={(e) => { setCommunity(e.target.value); setIsIdVerified(false); }}
                 value={community}
             >
-                <option value="Public">Public (General)</option>
-                <option value="Periyar University">Periyar University, Salem</option>
+                <option value="Public">{t('donor_reg.comm_public')}</option>
+                <option value="Periyar University">{t('donor_reg.comm_pu')}</option>
             </select>
           </div>
 
@@ -165,38 +167,38 @@ const RequesterRegister = () => {
           {community === 'Periyar University' && (
             <div className="bg-indigo-50/50 p-8 rounded-[40px] border-2 border-dashed border-indigo-100 animate-in slide-in-from-top duration-500">
                 <h3 className="font-black text-indigo-900 text-lg flex items-center gap-2 uppercase tracking-tighter mb-6">
-                    <School size={20} className="text-indigo-600"/> University Details
+                    <School size={20} className="text-indigo-600"/> {t('donor_reg.uni_details')}
                 </h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                     <div className="space-y-4">
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">Department</label>
-                            <input type="text" placeholder="e.g. Computer Science" className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm" onChange={e => setFormData({...formData, department: e.target.value})} required />
+                            <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">{t('donor_reg.dept')}</label>
+                            <input type="text" placeholder={t('donor_reg.dept_ph')} className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm" onChange={e => setFormData({...formData, department: e.target.value})} required />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">Role</label>
+                                <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">{t('donor_reg.role')}</label>
                                 <select className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm" onChange={e => setFormData({...formData, roleType: e.target.value})}>
-                                    <option value="Student">Student</option>
-                                    <option value="Staff">Staff</option>
+                                    <option value="Student">{t('donor_reg.role_student')}</option>
+                                    <option value="Staff">{t('donor_reg.role_staff')}</option>
                                 </select>
                             </div>
                             {/* ✅ YEAR FIELD ADDED BACK HERE */}
                             {formData.roleType === 'Student' && (
                              <div className="space-y-1.5 animate-in fade-in duration-300">
-                               <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">Year</label>
+                               <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">{t('donor_reg.year')}</label>
                                <select 
                         className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm appearance-none cursor-pointer" 
                                  onChange={e => setFormData({...formData, year: e.target.value})}
                                  required // ✅ Ippo ithu mandatory
                              >
-                                 <option value="">Select Year</option>
-                                 <option value="I YEAR">I YEAR</option>
-                                 <option value="II YEAR">II YEAR</option>
-                                 <option value="III YEAR">III YEAR</option>
-                                 <option value="IV YEAR">IV YEAR</option>
-                                 <option value="V YEAR">V YEAR</option>
+                                 <option value="">{t('donor_reg.year_select')}</option>
+                                 <option value="I YEAR">{t('donor_reg.year_1')}</option>
+                                 <option value="II YEAR">{t('donor_reg.year_2')}</option>
+                                 <option value="III YEAR">{t('donor_reg.year_3')}</option>
+                                 <option value="IV YEAR">{t('donor_reg.year_4')}</option>
+                                 <option value="V YEAR">{t('donor_reg.year_5')}</option>
                              </select>
                            </div>
                           )}
@@ -222,32 +224,32 @@ const RequesterRegister = () => {
           {/* ACCOUNT DETAILS BLOCK (Responsive Grid) */}
           <div className="space-y-6">
             <h3 className="font-black text-gray-800 text-lg flex items-center gap-2 uppercase tracking-tighter border-b pb-2 border-gray-50">
-                <ShieldCheck size={18} className="text-red-600"/> Account Details
+                <ShieldCheck size={18} className="text-red-600"/> {t('req_reg.account_details')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><User size={10}/> Full Name</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><User size={10}/> {t('donor_reg.name')}</label>
                   <div className="relative group">
                     <User className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
-                    <input type="text" placeholder="Your Name" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, fullName: e.target.value})} required />
+                    <input type="text" placeholder={t('donor_reg.name_ph')} className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, fullName: e.target.value})} required />
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Phone size={10}/> Phone Number</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Phone size={10}/> {t('donor_reg.phone')}</label>
                   <div className="relative group">
                     <Phone className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="tel" placeholder="+91" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, phone: e.target.value})} required />
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Mail size={10}/> Email Address</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Mail size={10}/> {t('donor_reg.email')}</label>
                   <div className="relative group">
                     <Mail className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
-                    <input type="email" placeholder="mail@example.com" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, email: e.target.value})} required />
+                    <input type="email" placeholder={t('donor_reg.email_ph')} className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, email: e.target.value})} required />
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Lock size={10}/> Password</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Lock size={10}/> {t('donor_reg.password')}</label>
                   <div className="relative group">
                     <Lock className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="password" placeholder="••••••••" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, password: e.target.value})} required />
@@ -260,7 +262,7 @@ const RequesterRegister = () => {
           <div className="flex gap-4 bg-red-50 p-6 rounded-[32px] border border-red-100 shadow-sm">
              <ShieldAlert size={28} className="text-red-600 shrink-0" />
              <p className="text-[11px] font-bold text-red-800 leading-relaxed uppercase tracking-tight">
-               By creating an account, you agree that LifeDrop is a connector platform. Please verify medical details and donor identity manually before the extraction process.
+               {t('req_reg.legal_warning')}
              </p>
           </div>
 
@@ -270,13 +272,13 @@ const RequesterRegister = () => {
                 disabled={loading}
                 className="w-full bg-red-600 text-white py-6 rounded-[28px] font-black text-xl shadow-xl shadow-red-100 hover:bg-red-700 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 uppercase tracking-widest"
             >
-              {loading ? <div className="flex items-center gap-2"><Loader2 className="animate-spin" size={20}/> PROCESSING...</div> : <><ArrowRight size={24}/> VERIFY & SIGN UP</>}
+              {loading ? <div className="flex items-center gap-2"><Loader2 className="animate-spin" size={20}/> {t('donor_reg.processing')}</div> : <><ArrowRight size={24}/> {t('req_reg.btn_verify')}</>}
             </button>
 
             <p className="text-center text-xs text-gray-400 font-bold uppercase tracking-widest">
-                Already part of the mission? 
+                {t('req_reg.already_member')} 
                 <span className="text-red-600 font-black cursor-pointer hover:underline ml-2" onClick={() => navigate('/login')}>
-                    Sign In
+                    {t('req_reg.sign_in')}
                 </span>
             </p>
           </div>

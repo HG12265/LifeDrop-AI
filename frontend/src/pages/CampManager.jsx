@@ -3,8 +3,10 @@ import { toast } from 'sonner';
 import { API_URL } from '../config'; 
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Clock, Plus, Trash2, Tent } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const CampManager = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [camps, setCamps] = useState([]);
   const [formData, setFormData] = useState({ title: '', location: '', city: '', date: '', time: '' });
@@ -24,14 +26,14 @@ const CampManager = () => {
       body: JSON.stringify(formData)
     });
     if(res.ok) {
-      toast.success("Camp Scheduled!");
+      toast.success(t('camp_manager.toast_scheduled'));
       setFormData({ title: '', location: '', city: '', date: '', time: '' });
       fetchCamps();
     }
   };
 
   const handleDelete = async (id) => {
-    if(!window.confirm("Delete this camp?")) return;
+    if(!window.confirm(t('camp_manager.confirm_delete'))) return;
     const res = await fetch(`${API_URL}/api/admin/camps/delete/${id}`, { 
       method: 'DELETE', 
       credentials: 'include'
@@ -43,30 +45,30 @@ const CampManager = () => {
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-10 animate-in fade-in duration-500">
       <div className="flex items-center gap-4">
          <button onClick={() => navigate(-1)} className="bg-white p-3 rounded-full shadow-sm"><ArrowLeft/></button>
-         <h2 className="text-3xl font-black italic tracking-tighter">Camp Organizer</h2>
+         <h2 className="text-3xl font-black italic tracking-tighter">{t('camp_manager.title')}</h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* Create Camp Form */}
         <div className="lg:col-span-1 bg-white p-8 rounded-[40px] shadow-2xl border border-gray-50 h-fit">
           <h3 className="font-black text-gray-800 text-xl mb-6 flex items-center gap-2">
-             <Plus className="text-red-600" /> Schedule New Camp
+             <Plus className="text-red-600" /> {t('camp_manager.form_title')}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
-             <input type="text" placeholder="Camp Title (e.g. Mega Blood Drive)" className="w-full p-4 bg-gray-50 rounded-2xl border-none outline-red-200 font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
-             <input type="text" placeholder="Full Address" className="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} required />
-             <input type="text" placeholder="City" className="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} required />
+             <input type="text" placeholder={t('camp_manager.ph_title')} className="w-full p-4 bg-gray-50 rounded-2xl border-none outline-red-200 font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
+             <input type="text" placeholder={t('camp_manager.ph_address')} className="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} required />
+             <input type="text" placeholder={t('camp_manager.ph_city')} className="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} required />
              <div className="grid grid-cols-2 gap-4">
                 <input type="date" className="p-4 bg-gray-50 rounded-2xl border-none font-bold text-gray-400" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required />
                 <input type="time" className="p-4 bg-gray-50 rounded-2xl border-none font-bold text-gray-400" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} required />
              </div>
-             <button type="submit" className="w-full bg-red-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-red-100 hover:bg-red-700 transition">PUBLISH CAMP</button>
+             <button type="submit" className="w-full bg-red-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-red-100 hover:bg-red-700 transition">{t('camp_manager.btn_publish')}</button>
           </form>
         </div>
 
         {/* Camps List */}
         <div className="lg:col-span-2 space-y-6">
-           <h3 className="font-black text-gray-400 text-sm uppercase tracking-[0.3em] px-2">Upcoming Events</h3>
+           <h3 className="font-black text-gray-400 text-sm uppercase tracking-[0.3em] px-2">{t('camp_manager.upcoming_events')}</h3>
            <div className="grid gap-6">
              {camps.map(camp => (
                <div key={camp.id} className="bg-slate-900 text-white p-8 rounded-[48px] shadow-xl flex flex-col md:flex-row justify-between items-center group relative overflow-hidden">

@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { API_URL } from '../config'; 
 import { useParams, useNavigate } from 'react-router-dom';
 import { Activity, Phone, User, ShieldCheck, MapPin, Calendar, Mail, Droplet, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const PublicProfile = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [donor, setDonor] = useState(null);
@@ -20,7 +22,7 @@ const PublicProfile = () => {
   if (!donor) return (
     <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
       <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-red-600 mb-4"></div>
-      <p className="font-bold text-gray-500">Fetching Hero Details...</p>
+      <p className="font-bold text-gray-500">{t('public_profile.fetching')}</p>
     </div>
   );
 
@@ -41,7 +43,7 @@ const PublicProfile = () => {
         <div className="bg-white rounded-[40px] shadow-2xl p-8 border border-gray-100 text-center relative overflow-hidden">
           {/* Health Score Badge (Top Right) */}
           <div className="absolute top-6 right-6 flex flex-col items-center">
-             <div className="text-[10px] font-black text-gray-400 uppercase">Health</div>
+             <div className="text-[10px] font-black text-gray-400 uppercase">{t('public_profile.health')}</div>
              <div className="text-xl font-black text-green-600">{donor.healthScore}%</div>
           </div>
 
@@ -58,26 +60,26 @@ const PublicProfile = () => {
           <h2 className="text-3xl font-black text-gray-800 mt-6 tracking-tight">{donor.name}</h2>
           <p className="text-red-600 font-bold text-sm flex items-center justify-center gap-1 mt-1">
             <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
-            LifeDrop ID: #{donor.id}
+            {t('public_profile.id_prefix')}: #{donor.id}
           </p>
 
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 gap-4 mt-8">
             <div className="bg-red-50 p-4 rounded-3xl border border-red-100">
                <Droplet className="text-red-600 mx-auto mb-1" size={24} />
-               <p className="text-[10px] font-bold text-gray-400 uppercase">Blood Group</p>
+               <p className="text-[10px] font-bold text-gray-400 uppercase">{t('public_profile.blood_group')}</p>
                <h4 className="text-2xl font-black text-red-600">{donor.bloodGroup}</h4>
             </div>
             <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100">
                <Calendar className="text-slate-600 mx-auto mb-1" size={24} />
-               <p className="text-[10px] font-bold text-gray-400 uppercase">Age / DOB</p>
+               <p className="text-[10px] font-bold text-gray-400 uppercase">{t('public_profile.age_dob')}</p>
                <h4 className="text-lg font-black text-slate-800">{donor.dob}</h4>
             </div>
           </div>
 
           {/* Medical Info Section */}
           <div className="mt-8 text-left space-y-4">
-             <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b pb-2">Contact & Verification</h3>
+             <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b pb-2">{t('public_profile.contact_ver')}</h3>
              
              <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl">
                 <div className="bg-white p-2 rounded-xl shadow-sm text-blue-600"><Mail size={20} /></div>
@@ -99,10 +101,10 @@ const PublicProfile = () => {
           {/* Medical Trust Score Meter */}
           <div className="mt-8 bg-slate-900 rounded-3xl p-6 text-white text-left overflow-hidden relative">
             <Activity className="absolute right-[-10px] bottom-[-10px] opacity-10" size={80} />
-            <p className="text-xs font-bold opacity-60 uppercase">Medical Eligibility Score</p>
+            <p className="text-xs font-bold opacity-60 uppercase">{t('public_profile.med_score')}</p>
             <div className="flex items-end gap-3 mt-2">
                <h4 className="text-4xl font-black">{donor.healthScore}%</h4>
-               <span className="bg-green-500 text-[10px] px-2 py-0.5 rounded-full mb-2">SAFE TO DONATE</span>
+               <span className="bg-green-500 text-[10px] px-2 py-0.5 rounded-full mb-2">{t('public_profile.safe_donate')}</span>
             </div>
             <div className="mt-4 w-full bg-white/20 h-2 rounded-full overflow-hidden">
                <div className="bg-green-400 h-full rounded-full" style={{ width: `${donor.healthScore}%` }}></div>
@@ -114,13 +116,13 @@ const PublicProfile = () => {
             href={`tel:${donor.phone}`} 
             className="mt-8 flex items-center justify-center gap-3 bg-red-600 text-white py-5 rounded-3xl font-black shadow-xl shadow-red-200 hover:scale-[1.02] active:scale-95 transition"
           >
-            <Phone size={24} fill="white" /> CONTACT DONOR NOW
+            <Phone size={24} fill="white" /> {t('public_profile.btn_contact')}
           </a>
         </div>
 
         {/* Bottom Disclaimer */}
         <p className="mt-8 text-center text-xs text-gray-400 px-4 leading-relaxed">
-           This donor profile is verified by <b>LifeDrop</b>. Please ensure to check the medical fitness again before the extraction process.
+           {t('public_profile.disclaimer')}
         </p>
       </div>
     </div>

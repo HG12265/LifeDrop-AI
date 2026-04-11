@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import { ShieldCheck, MapPin, Send, ArrowLeft, Heart, Activity, Phone } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 // --- LEAFLET MARKER BUG FIX START ---
 import L from 'leaflet';
@@ -21,6 +22,7 @@ L.Icon.Default.mergeOptions({
 // --- LEAFLET MARKER BUG FIX END ---
 
 const DonorMatching = () => {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const [data, setData] = useState({ request: null, matches: [] });
@@ -49,14 +51,15 @@ const DonorMatching = () => {
             const result = await res.json();
             toast.success(result.message);
         } catch (err) {
-            toast.error("Failed to send request.");
+            console.error(err);
+            toast.error(t('donor_matching.toast_send_fail'));
         }
     };
 
     if (loading) return (
         <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
           <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-red-600 mb-4"></div>
-          <h2 className="text-xl font-black text-gray-800 tracking-tight italic uppercase">Scanning for Heroes...</h2>
+          <h2 className="text-xl font-black text-gray-800 tracking-tight italic uppercase">{t('donor_matching.loading')}</h2>
         </div>
     );
 
@@ -70,7 +73,7 @@ const DonorMatching = () => {
                     
                     {/* Requester Marker */}
                     <Marker position={[data.request.lat, data.request.lng]}>
-                        <Popup>🚨 Emergency Location</Popup>
+                        <Popup>{t('donor_matching.popup_emergency')}</Popup>
                     </Marker>
                     <Circle center={[data.request.lat, data.request.lng]} radius={10000} pathOptions={{color: 'red', fillOpacity: 0.05}} />
                     
@@ -81,7 +84,7 @@ const DonorMatching = () => {
                                 <div className="text-center font-bold">
                                     <p className="text-red-600 font-black">{donor.blood}</p>
                                     <p className="text-xs">{donor.name}</p>
-                                    <p className="text-[10px] text-green-600">{donor.match}% Match</p>
+                                    <p className="text-[10px] text-green-600">{t('donor_matching.popup_match', { count: donor.match })}</p>
                                 </div>
                             </Popup>
                         </Marker>
@@ -93,10 +96,10 @@ const DonorMatching = () => {
             <div className="space-y-6">
                 <div className="flex justify-between items-center bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
                     <div>
-                        <h2 className="text-2xl md:text-3xl font-black text-gray-800 tracking-tighter italic text-red-600 uppercase">Heroes Found</h2>
-                        <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Requesting {data.request.blood} Group</p>
+                        <h2 className="text-2xl md:text-3xl font-black text-gray-800 tracking-tighter italic text-red-600 uppercase">{t('donor_matching.title')}</h2>
+                        <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">{t('donor_matching.subtitle', { blood: data.request.blood })}</p>
                       <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-slate-900 text-white uppercase tracking-tighter">
-                          {data.request.community} Circle
+                          {t('donor_matching.circle_tag', { community: data.request.community })}
                      </span>
                     </div>
                     <button onClick={() => navigate('/requester-dashboard')} className="bg-slate-50 p-3 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-600 transition shadow-sm">
@@ -116,17 +119,17 @@ const DonorMatching = () => {
                                         <div className="flex flex-wrap items-center gap-2">
                                             <h4 className="font-black text-gray-800 text-lg md:text-xl leading-none">{donor.name}</h4>
                                             <span className={`text-[7px] md:text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${donor.isExact ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                                                {donor.isExact ? 'Exact Match' : 'Compatible'}
+                                                {donor.isExact ? t('donor_matching.tag_exact') : t('donor_matching.tag_compatible')}
                                             </span>
                                         </div>
                                         
                                         <div className="flex flex-col gap-1 mt-2">
                                             <p className="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                                                Donor Group: <span className="text-red-600 font-bold">{donor.blood}</span>
+                                                {t('donor_matching.label_group')}: <span className="text-red-600 font-bold">{donor.blood}</span>
                                             </p>
                                             <div className="flex items-center gap-2 md:gap-3 mt-1">
                                                 <span className="text-[8px] md:text-[9px] font-black text-gray-400 flex items-center gap-1 uppercase bg-slate-50 px-2 py-1 rounded-lg">
-                                                    <MapPin size={10} className="text-red-500"/> {donor.distance} KM
+                                                    <MapPin size={10} className="text-red-500"/> {donor.distance} {t('donor_matching.unit_km')}
                                                 </span>
                                                 <span className="text-[8px] md:text-[9px] font-black text-gray-400 flex items-center gap-1 uppercase bg-slate-50 px-2 py-1 rounded-lg border-l-2 border-green-500">
                                                     <Activity size={10} className="text-green-500"/> {donor.healthScore}%
@@ -138,31 +141,31 @@ const DonorMatching = () => {
                                                     <Phone size={10} />
                                                 </div>
                                                 <span className="text-[10px] font-black text-slate-400 tracking-widest italic">{donor.phone}</span>
-                                                <span className="text-[7px] font-black bg-slate-800 text-white px-2 py-0.5 rounded-full tracking-widest uppercase opacity-20">Masked</span>
+                                                <span className="text-[7px] font-black bg-slate-800 text-white px-2 py-0.5 rounded-full tracking-widest uppercase opacity-20">{t('donor_matching.label_masked')}</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="text-center">
                                     <div className={`text-2xl md:text-3xl font-black ${donor.match > 80 ? 'text-green-600' : 'text-orange-500'}`}>{donor.match}%</div>
-                                    <p className="text-[8px] md:text-[10px] font-black text-gray-300 uppercase tracking-widest italic leading-none">Match</p>
+                                    <p className="text-[8px] md:text-[10px] font-black text-gray-300 uppercase tracking-widest italic leading-none">{t('donor_matching.label_match')}</p>
                                 </div>
                             </div>
 
                             <div className="mt-6 flex items-center justify-between border-t border-dashed border-gray-100 pt-5">
-                                <p className="text-[8px] md:text-[9px] font-bold text-gray-300 tracking-[0.2em] uppercase italic">ID: #{donor.unique_id}</p>
+                                <p className="text-[8px] md:text-[9px] font-bold text-gray-300 tracking-[0.2em] uppercase italic">{t('donor_matching.id_prefix')}: #{donor.unique_id}</p>
                                 <button 
                                     onClick={() => sendRequest(donor.unique_id)}
                                     className="bg-slate-900 text-white px-6 md:px-10 py-3 md:py-3.5 rounded-[20px] font-black text-[10px] md:text-xs shadow-xl flex items-center gap-2 hover:bg-red-600 transition-all duration-300 transform active:scale-95 shadow-slate-200 uppercase tracking-widest"
                                 >
-                                    <Send size={14} /> Send Request
+                                    <Send size={14} /> {t('donor_matching.btn_send')}
                                 </button>
                             </div>
                         </div>
                     )) : (
                         <div className="bg-white p-10 md:p-20 rounded-[48px] border-2 border-dashed border-gray-100 text-center flex flex-col items-center animate-pulse">
                             <ShieldCheck size={60} className="text-gray-100 mb-4" />
-                            <p className="text-gray-400 font-black uppercase tracking-widest">No compatible donors found</p>
+                            <p className="text-gray-400 font-black uppercase tracking-widest">{t('donor_matching.empty_state')}</p>
                         </div>
                     )}
                 </div>

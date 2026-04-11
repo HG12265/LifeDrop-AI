@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const ConfirmModal = ({ 
   isOpen, 
@@ -7,11 +8,16 @@ const ConfirmModal = ({
   message, 
   onConfirm, 
   onCancel, 
-  confirmText = "Yes, Proceed", 
-  cancelText = "Cancel",
+  confirmText, 
+  cancelText,
   type = "danger" // 'danger' (Red) or 'success' (Green)
 }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
+
+  const finalConfirmText = confirmText || t('common.btn_confirm');
+  const finalCancelText = cancelText || t('common.btn_cancel');
+
 
   const isSuccess = type === "success";
 
@@ -57,14 +63,14 @@ const ConfirmModal = ({
                 : 'bg-red-600 text-white shadow-red-100 hover:bg-red-700'
               }`}
             >
-              {confirmText}
+              {finalConfirmText}
             </button>
             
             <button 
               onClick={onCancel}
               className="w-full bg-gray-50 text-gray-500 py-4 rounded-2xl font-black text-sm hover:bg-gray-100 transition active:scale-95"
             >
-              {cancelText}
+              {finalCancelText}
             </button>
           </div>
         </div>

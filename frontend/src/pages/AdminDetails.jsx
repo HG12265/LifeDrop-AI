@@ -3,6 +3,7 @@ import { API_URL } from '../config';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, ShieldCheck, Phone, Search, FileSpreadsheet, FileText, Link2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 // ✅ CAPACITOR IMPORTS
 import { Filesystem, Directory } from '@capacitor/filesystem';
@@ -14,6 +15,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const AdminDetails = () => {
+  const { t } = useTranslation();
   const { category } = useParams(); 
   const [searchParams] = useSearchParams();
   const type = searchParams.get('type'); 
@@ -51,7 +53,7 @@ const AdminDetails = () => {
 
     if (Capacitor.getPlatform() === 'web') {
       XLSX.writeFile(workbook, fileName);
-      toast.success("Excel downloaded!");
+      toast.success(t('admin_details.toast_excel_dl'));
     } else {
       try {
         // 1. Generate Base64
@@ -66,7 +68,7 @@ const AdminDetails = () => {
         });
 
         // ✅ SUCCESS: Show toast immediately after save
-        toast.success("Excel report saved to Documents!");
+        toast.success(t('admin_details.toast_excel_saved'));
 
         // 3. Optional Share (Nested try-catch to prevent fake errors)
         try {
@@ -79,7 +81,7 @@ const AdminDetails = () => {
         }
       } catch (error) {
         console.error("Excel Export Error:", error);
-        toast.error("Failed to save Excel file on device");
+        toast.error(t('admin_details.toast_excel_fail'));
       }
     }
     setIsExporting(false);
@@ -90,25 +92,25 @@ const AdminDetails = () => {
     setIsExporting(true);
     try {
       const doc = new jsPDF();
-      const title = `LifeDrop ${category.toUpperCase()} Report`;
+      const title = t('admin_details.pdf_report_title', { category: category.toUpperCase() });
       doc.setFontSize(20);
       doc.setTextColor(220, 38, 38);
       doc.text(title, 14, 20);
       doc.setFontSize(10);
       doc.setTextColor(100);
-      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+      doc.text(t('admin_details.pdf_gen_on', { date: new Date().toLocaleString() }), 14, 30);
 
       let columns = [];
       let rows = [];
 
       if(category === 'users') {
-          columns = ["Name", "Email", "Role", "Phone"];
+          columns = [t('admin_details.pdf_col_name'), t('admin_details.pdf_col_email'), t('admin_details.pdf_col_role'), t('admin_details.pdf_col_phone')];
           rows = filteredList.map(item => [item.name, item.email, item.role, item.phone]);
       } else if(category === 'donors') {
-          columns = ["Status", "Name", "ID", "Blood", "Health", "Phone"];
+          columns = [t('admin_details.pdf_col_status'), t('admin_details.pdf_col_name'), t('admin_details.pdf_col_id'), t('admin_details.pdf_col_blood'), t('admin_details.pdf_col_health'), t('admin_details.pdf_col_phone')];
           rows = filteredList.map(item => [item.status, item.name, item.u_id, item.blood, `${item.health}%`, item.phone]);
       } else {
-          columns = ["Patient", "Group", "Requester", "Donor", "Hospital"];
+          columns = [t('admin_details.pdf_col_patient'), t('admin_details.pdf_col_group'), t('admin_details.pdf_col_requester'), t('admin_details.pdf_col_donor'), t('admin_details.pdf_col_hospital')];
           rows = filteredList.map(item => [item.patient, item.blood, item.requester, item.donor || "N/A", item.hospital]);
       }
 
@@ -124,7 +126,7 @@ const AdminDetails = () => {
 
       if (Capacitor.getPlatform() === 'web') {
         doc.save(fileName);
-        toast.success("PDF downloaded!");
+        toast.success(t('admin_details.toast_pdf_dl'));
       } else {
         try {
           // 1. Generate Base64
@@ -139,7 +141,7 @@ const AdminDetails = () => {
           });
 
           // ✅ SUCCESS: Show toast immediately after save
-          toast.success("PDF report saved to Documents!");
+          toast.success(t('admin_details.toast_pdf_saved'));
 
           // 3. Optional Share
           try {
@@ -152,12 +154,12 @@ const AdminDetails = () => {
           }
         } catch (saveError) {
           console.error("PDF Save Error:", saveError);
-          toast.error("Failed to save PDF file on device");
+          toast.error(t('admin_details.toast_pdf_save_fail'));
         }
       }
     } catch (error) {
       console.error("PDF Generation Error:", error);
-      toast.error("Error generating PDF");
+      toast.error(t('admin_details.toast_pdf_gen_err'));
     }
     setIsExporting(false);
   };
@@ -171,9 +173,9 @@ const AdminDetails = () => {
             <button onClick={() => navigate(-1)} className="bg-slate-100 p-2 rounded-xl text-slate-500 hover:text-red-600 transition"><ArrowLeft/></button>
             <div>
                <h2 className="text-2xl font-black capitalize text-gray-800 tracking-tight">
-                 {type === 'completed' ? 'Life Saves' : type ? type : 'Total'} {category}
+                 {type === 'completed' ? t('admin_details.title_saves') : type ? type : t('admin_details.title_total')} {category}
                </h2>
-               <p className="text-[10px] font-black text-red-600 uppercase tracking-widest italic leading-none mt-1">System Audit Mode</p>
+               <p className="text-[10px] font-black text-red-600 uppercase tracking-widest italic leading-none mt-1">{t('admin_details.audit_mode')}</p>
             </div>
         </div>
 
@@ -183,7 +185,7 @@ const AdminDetails = () => {
               disabled={isExporting}
               className="flex items-center gap-2 bg-green-50 text-green-700 px-5 py-2.5 rounded-xl font-black text-[10px] border border-green-100 active:scale-95 transition uppercase tracking-widest"
             >
-              {isExporting ? <Loader2 className="animate-spin" size={14}/> : <FileSpreadsheet size={16}/>} EXCEL
+              {isExporting ? <Loader2 className="animate-spin" size={14}/> : <FileSpreadsheet size={16}/>} {t('admin_details.btn_excel')}
             </button>
             
             <button 
@@ -191,12 +193,12 @@ const AdminDetails = () => {
               disabled={isExporting}
               className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-black text-[10px] hover:bg-black transition shadow-lg active:scale-95 uppercase tracking-widest"
             >
-              {isExporting ? <Loader2 className="animate-spin" size={14}/> : <FileText size={16}/>} PDF
+              {isExporting ? <Loader2 className="animate-spin" size={14}/> : <FileText size={16}/>} {t('admin_details.btn_pdf')}
             </button>
 
             <div className="relative">
                 <input 
-                  type="text" placeholder="Search records..." 
+                  type="text" placeholder={t('admin_details.search_ph')} 
                   className="p-2.5 pl-8 bg-slate-50 rounded-xl border-none outline-red-200 font-bold text-xs w-full md:w-48 shadow-inner"
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -211,15 +213,15 @@ const AdminDetails = () => {
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-900 text-white text-[10px] uppercase tracking-[0.2em] font-black">
               <tr>
-                {category === 'users' && <><th className="p-6">Name</th><th className="p-6">Email</th><th className="p-6">Role</th><th className="p-6">Phone</th></>}
-                {category === 'donors' && <><th className="p-6">Status</th><th className="p-6">Donor Details</th><th className="p-6 text-center">Blood</th><th className="p-6 text-center">Health</th><th className="p-6">Location</th></>}
+                {category === 'users' && <><th className="p-6">{t('admin_details.th_name')}</th><th className="p-6">{t('admin_details.th_email')}</th><th className="p-6">{t('admin_details.th_role')}</th><th className="p-6">{t('admin_details.th_phone')}</th></>}
+                {category === 'donors' && <><th className="p-6">{t('admin_details.th_status')}</th><th className="p-6">{t('admin_details.th_donor_details')}</th><th className="p-6 text-center">{t('admin_details.th_blood')}</th><th className="p-6 text-center">{t('admin_details.th_health')}</th><th className="p-6">{t('admin_details.th_location')}</th></>}
                 {category === 'requests' && <>
-                  <th className="p-6">Patient</th>
-                  <th className="p-6 text-center">Group</th>
-                  <th className="p-6">Requester</th>
-                  {type === 'completed' && <th className="p-6">Donor Hero</th>}
-                  <th className="p-6">Hospital</th>
-                  {type === 'completed' && <th className="p-6 text-center">Ledger</th>}
+                  <th className="p-6">{t('admin_details.th_patient')}</th>
+                  <th className="p-6 text-center">{t('admin_details.th_group')}</th>
+                  <th className="p-6">{t('admin_details.th_requester')}</th>
+                  {type === 'completed' && <th className="p-6">{t('admin_details.th_donor_hero')}</th>}
+                  <th className="p-6">{t('admin_details.th_hospital')}</th>
+                  {type === 'completed' && <th className="p-6 text-center">{t('admin_details.th_ledger')}</th>}
                 </>}
               </tr>
             </thead>
@@ -234,7 +236,7 @@ const AdminDetails = () => {
                   </>}
                   {category === 'donors' && <>
                     <td className="p-6"><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${item.status === 'Active' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>{item.status}</span></td>
-                    <td className="p-6"><p className="font-black text-gray-800">{item.name}</p><p className="text-[10px] text-gray-400 uppercase">ID: #{item.u_id}</p></td>
+                    <td className="p-6"><p className="font-black text-gray-800">{item.name}</p><p className="text-[10px] text-gray-400 uppercase">{t('admin_details.id_prefix')}: #{item.u_id}</p></td>
                     <td className="p-6 text-2xl font-black text-red-600 text-center">{item.blood}</td>
                     <td className="p-6 font-black text-green-600 text-center">{item.health}%</td>
                     <td className="p-6 text-[10px] font-bold text-gray-400 italic">{item.location}</td>
@@ -243,7 +245,7 @@ const AdminDetails = () => {
                     <td className="p-6 font-black text-gray-800">{item.patient}</td>
                     <td className="p-6 text-2xl font-black text-red-600 text-center">{item.blood}</td>
                     <td className="p-6 text-xs font-bold text-gray-400 uppercase">{item.requester}</td>
-                    {type === 'completed' && <td className="p-6 font-black text-green-600 text-xs uppercase">{item.donor}</td>}
+                    {type === 'completed' && <td className="p-6 font-black text-green-600 text-xs uppercase">{item.donor || t('admin_details.not_applicable')}</td>}
                     <td className="p-6 text-xs italic text-gray-400 leading-tight max-w-[150px]">{item.hospital}</td>
                     {type === 'completed' && (
                         <td className="p-6 text-center">
@@ -258,7 +260,7 @@ const AdminDetails = () => {
                   </>}
                 </tr>
               )) : (
-                <tr><td colSpan="10" className="p-20 text-center text-gray-400 font-bold italic">No matching records found.</td></tr>
+                <tr><td colSpan="10" className="p-20 text-center text-gray-400 font-bold italic">{t('admin_details.empty_state')}</td></tr>
               )}
             </tbody>
           </table>

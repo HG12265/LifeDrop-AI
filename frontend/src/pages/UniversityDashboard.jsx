@@ -1,8 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { School, ShieldCheck, Users, History, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const UniversityDashboard = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -12,16 +14,16 @@ const UniversityDashboard = () => {
           <ArrowLeft size={24} />
         </button>
         <div>
-          <h2 className="text-3xl font-black italic tracking-tighter uppercase">Periyar University Dashboard</h2>
-          <p className="text-[10px] font-bold text-red-600 uppercase tracking-[0.3em]">Institutional Management Hub</p>
+          <h2 className="text-3xl font-black italic tracking-tighter uppercase">{t('uni_dash.title')}</h2>
+          <p className="text-[10px] font-bold text-red-600 uppercase tracking-[0.3em]">{t('uni_dash.subtitle')}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MenuCard label="Verify Donors" sub="Pending ID Audits" icon={<ShieldCheck/>} color="bg-orange-500" onClick={() => navigate('/admin/verifications')} />
-        <MenuCard label="Total Donors" sub="Verified PU Members" icon={<Users/>} color="bg-blue-600" onClick={() => navigate('/admin/university/details/donors')} />
-        <MenuCard label="Total Requesters" sub="PU Access List" icon={<Users/>} color="bg-purple-600" onClick={() => navigate('/admin/university/details/requesters')} />
-        <MenuCard label="Donation History" sub="PU Internal Saves" icon={<History/>} color="bg-green-600" onClick={() => navigate('/admin/university/details/history')} />
+        <MenuCard label={t('uni_dash.card_verify')} sub={t('uni_dash.card_verify_sub')} icon={<ShieldCheck/>} color="bg-orange-500" onClick={() => navigate('/admin/verifications')} />
+        <MenuCard label={t('uni_dash.card_donors')} sub={t('uni_dash.card_donors_sub')} icon={<Users/>} color="bg-blue-600" onClick={() => navigate('/admin/university/details/donors')} />
+        <MenuCard label={t('uni_dash.card_requesters')} sub={t('uni_dash.card_requesters_sub')} icon={<Users/>} color="bg-purple-600" onClick={() => navigate('/admin/university/details/requesters')} />
+        <MenuCard label={t('uni_dash.card_history')} sub={t('uni_dash.card_history_sub')} icon={<History/>} color="bg-green-600" onClick={() => navigate('/admin/university/details/history')} />
       </div>
     </div>
   );

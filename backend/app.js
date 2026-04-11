@@ -94,6 +94,10 @@ const loginLimiter = rateLimit({
 });
 
 // ==================== MONGODB CONNECTION ====================
+mongoose.connection.on('disconnected', () => {
+    console.warn('⚠️ MongoDB Disconnected! Attempting to reconnect...');
+});
+
 mongoose.connect(process.env.MONGODB_URI, {
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
@@ -104,7 +108,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 })
 .catch(err => {
     console.error('❌ MongoDB Connection Error:', err);
-    process.exit(1);
+    console.warn('⚠️ Retrying in background...');
 });
 
 // ==================== SCHEMA DEFINITIONS ====================
@@ -801,17 +805,17 @@ app.post('/api/verify/send-otp', async (req, res) => {
             timestamp: new Date()
         });
         
-        // Send email with await to ensure it completes
-        // But don't block response - use Promise
-        sendBrevoOTP(email, otpCode).then(sent => {
+        // Send email securely with await
+        try {
+            const sent = await sendBrevoOTP(email, otpCode);
             if (sent) {
                 console.log(`✅ Email sent successfully to ${email}`);
             } else {
                 console.log(`⚠️ Email sending had issues, but OTP saved in DB for ${email}`);
             }
-        }).catch(err => {
+        } catch (err) {
             console.error(`❌ Email promise error: ${err.message}`);
-        });
+        }
         
         // Always return success to user - OTP is in DB
         res.json({ 

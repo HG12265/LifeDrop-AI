@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileSpreadsheet, FileText, Search, Link2, Phone, User, ShieldCheck, Clock } from 'lucide-react';
 import { API_URL } from '../config';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -13,13 +14,14 @@ import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 
 const UniversityDetails = () => {
+  const { t } = useTranslation();
   const { type } = useParams(); // donors, requesters, history
   const navigate = useNavigate();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchData = () => {
+  const fetchData = useCallback(() => {
     setLoading(true);
     fetch(`${API_URL}/api/admin/university/${type}`)
       .then(res => res.json())
@@ -28,14 +30,14 @@ const UniversityDetails = () => {
         setLoading(false);
       })
       .catch(err => {
-        toast.error("Error fetching data");
+        toast.error(t('uni_details.toast_fetch_err'));
         setLoading(false);
       });
-  };
+  }, [type]);
 
   useEffect(() => {
     fetchData();
-  }, [type]);
+  }, [fetchData]);
 
   const filteredList = list.filter(item => 
     Object.values(item).some(val => String(val).toLowerCase().includes(searchTerm.toLowerCase()))
@@ -50,7 +52,7 @@ const UniversityDetails = () => {
 
     if (Capacitor.getPlatform() === 'web') {
       XLSX.writeFile(wb, fileName);
-      toast.success("Excel file downloaded!");
+      toast.success(t('uni_details.toast_excel_dl'));
     } else {
       try {
         // 1. Generate Base64
@@ -65,7 +67,7 @@ const UniversityDetails = () => {
         });
 
         // ✅ SUCCESS: Show toast immediately after save
-        toast.success("Excel report saved to Documents!");
+        toast.success(t('uni_details.toast_excel_saved'));
 
         // 3. Optional Share (Nested try-catch to prevent fake errors)
         try {
@@ -78,7 +80,7 @@ const UniversityDetails = () => {
         }
       } catch (error) {
         console.error("Excel Export Error:", error);
-        toast.error("Failed to save Excel file on device");
+        toast.error(t('uni_details.toast_excel_fail'));
       }
     }
   };
@@ -87,19 +89,43 @@ const UniversityDetails = () => {
   const exportPDF = async () => {
     const doc = new jsPDF('l', 'mm', 'a4');
     doc.setFontSize(18);
-    doc.text(`Periyar University - ${type.toUpperCase()} REPORT`, 14, 15);
+    doc.text(t('uni_details.pdf_title', { type: type.toUpperCase() }), 14, 15);
     
     let headers = [];
     let body = [];
 
     if (type === 'history') {
-      headers = [["Patient", "Blood", "Requester", "Requester Phone", "Donor Hero", "Donor Phone", "Hospital", "Date"]];
+      headers = [[
+        t('uni_details.pdf_col_patient'), 
+        t('uni_details.pdf_col_blood'), 
+        t('uni_details.pdf_col_requester'), 
+        t('uni_details.pdf_col_req_phone'), 
+        t('uni_details.pdf_col_donor_hero'), 
+        t('uni_details.pdf_col_donor_phone'), 
+        t('uni_details.pdf_col_hospital'), 
+        t('uni_details.pdf_col_date')
+      ]];
       body = filteredList.map(i => [i.patient, i.blood, i.requester_name, i.requester_phone, i.donor_name, i.donor_phone, i.hospital, i.date]);
     } else if (type === 'donors') {
-      headers = [["Name", "Email", "Phone", "Blood", "Dept", "Role", "Status"]];
+      headers = [[
+        t('uni_details.pdf_col_name'), 
+        t('uni_details.pdf_col_email'), 
+        t('uni_details.pdf_col_phone'), 
+        t('uni_details.pdf_col_blood'), 
+        t('uni_details.pdf_col_dept'), 
+        t('uni_details.pdf_col_role'), 
+        t('uni_details.pdf_col_status')
+      ]];
       body = filteredList.map(i => [i.name, i.email, i.phone, i.blood, i.dept, i.role, i.status]);
     } else {
-      headers = [["Name", "Email", "Phone", "Dept", "Role", "Year"]];
+      headers = [[
+        t('uni_details.pdf_col_name'), 
+        t('uni_details.pdf_col_email'), 
+        t('uni_details.pdf_col_phone'), 
+        t('uni_details.pdf_col_dept'), 
+        t('uni_details.pdf_col_role'), 
+        t('uni_details.pdf_col_year')
+      ]];
       body = filteredList.map(i => [i.name, i.email, i.phone, i.dept, i.role, i.year]);
     }
 
@@ -115,7 +141,7 @@ const UniversityDetails = () => {
 
     if (Capacitor.getPlatform() === 'web') {
       doc.save(fileName);
-      toast.success("PDF Report downloaded!");
+      toast.success(t('uni_details.toast_pdf_dl'));
     } else {
       try {
         // 1. Generate Base64
@@ -130,7 +156,7 @@ const UniversityDetails = () => {
         });
 
         // ✅ SUCCESS: Show toast immediately after save
-        toast.success("PDF report saved to Documents!");
+        toast.success(t('uni_details.toast_pdf_saved'));
 
         // 3. Optional Share
         try {
@@ -143,7 +169,7 @@ const UniversityDetails = () => {
         }
       } catch (error) {
         console.error("PDF Export Error:", error);
-        toast.error("Failed to save PDF file on device");
+        toast.error(t('uni_details.toast_pdf_fail'));
       }
     }
   };
@@ -157,18 +183,18 @@ const UniversityDetails = () => {
           <button onClick={() => navigate(-1)} className="bg-slate-100 p-2 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 transition"><ArrowLeft/></button>
           <div>
              <h2 className="text-2xl font-black capitalize tracking-tight text-gray-800">
-               PU {type === 'history' ? 'Donation History' : type}
+               PU {type === 'history' ? t('uni_details.title_history') : type}
              </h2>
-             <p className="text-[10px] font-black text-red-600 uppercase tracking-widest italic">University Circle Audit</p>
+             <p className="text-[10px] font-black text-red-600 uppercase tracking-widest italic">{t('uni_details.audit_subtitle')}</p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-            <button onClick={exportExcel} className="bg-green-50 text-green-700 px-5 py-2.5 rounded-xl font-black text-[10px] border border-green-100 hover:bg-green-100 transition uppercase tracking-widest">Excel</button>
-            <button onClick={exportPDF} className="bg-red-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] shadow-lg shadow-red-100 hover:bg-red-700 transition uppercase tracking-widest">PDF Report</button>
+            <button onClick={exportExcel} className="bg-green-50 text-green-700 px-5 py-2.5 rounded-xl font-black text-[10px] border border-green-100 hover:bg-green-100 transition uppercase tracking-widest">{t('uni_details.btn_excel')}</button>
+            <button onClick={exportPDF} className="bg-red-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] shadow-lg shadow-red-100 hover:bg-red-700 transition uppercase tracking-widest">{t('uni_details.btn_pdf')}</button>
             <div className="relative w-full md:w-64">
                 <input 
-                  type="text" placeholder="Search records..." 
+                  type="text" placeholder={t('uni_details.search_ph')} 
                   className="w-full p-3 pl-10 bg-slate-50 rounded-2xl border-none outline-red-200 font-bold text-xs"
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -185,33 +211,33 @@ const UniversityDetails = () => {
               <tr>
                 {type === 'history' ? (
                   <>
-                    <th className="p-6">Patient & Blood</th>
-                    <th className="p-6">Requester Details</th>
-                    <th className="p-6">Donor Hero</th>
-                    <th className="p-6">Hospital & Date</th>
-                    <th className="p-6 text-center">Ledger</th>
+                    <th className="p-6">{t('uni_details.th_patient_blood')}</th>
+                    <th className="p-6">{t('uni_details.th_req_details')}</th>
+                    <th className="p-6">{t('uni_details.th_donor_hero')}</th>
+                    <th className="p-6">{t('uni_details.th_hosp_date')}</th>
+                    <th className="p-6 text-center">{t('uni_details.th_ledger')}</th>
                   </>
                 ) : type === 'donors' ? (
                   <>
-                    <th className="p-6">Status</th>
-                    <th className="p-6">Donor Info</th>
-                    <th className="p-6">Blood</th>
-                    <th className="p-6">Dept / Role</th>
-                    <th className="p-6">Contact</th>
+                    <th className="p-6">{t('uni_details.th_status')}</th>
+                    <th className="p-6">{t('uni_details.th_donor_info')}</th>
+                    <th className="p-6">{t('uni_details.th_blood')}</th>
+                    <th className="p-6">{t('uni_details.th_dept_role')}</th>
+                    <th className="p-6">{t('uni_details.th_contact')}</th>
                   </>
                 ) : (
                   <>
-                    <th className="p-6">Requester Name</th>
-                    <th className="p-6">Email</th>
-                    <th className="p-6">Dept / Role</th>
-                    <th className="p-6">Phone</th>
+                    <th className="p-6">{t('uni_details.th_req_name')}</th>
+                    <th className="p-6">{t('uni_details.th_email')}</th>
+                    <th className="p-6">{t('uni_details.th_dept_role')}</th>
+                    <th className="p-6">{t('uni_details.th_phone')}</th>
                   </>
                 )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
-                <tr><td colSpan="10" className="p-20 text-center font-bold text-gray-400 animate-pulse">LOADING DATA...</td></tr>
+                <tr><td colSpan="10" className="p-20 text-center font-bold text-gray-400 animate-pulse">{t('uni_details.loading')}</td></tr>
               ) : filteredList.length > 0 ? filteredList.map((item, idx) => (
                 <tr key={idx} className="hover:bg-slate-50 transition group">
                   
@@ -219,7 +245,7 @@ const UniversityDetails = () => {
                     <>
                       <td className="p-6">
                         <p className="font-black text-gray-800">{item.patient}</p>
-                        <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">Group: {item.blood}</span>
+                        <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">{t('uni_details.group_prefix')}: {item.blood}</span>
                       </td>
                       <td className="p-6">
                         <p className="font-bold text-gray-700 text-sm">{item.requester_name}</p>
@@ -249,7 +275,7 @@ const UniversityDetails = () => {
                   {type === 'donors' && (
                     <>
                       <td className="p-6"><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${item.status === 'Verified' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>{item.status}</span></td>
-                      <td className="p-6"><p className="font-black text-gray-800">{item.name}</p><p className="text-[9px] text-gray-400 uppercase">ID: {item.email}</p></td>
+                      <td className="p-6"><p className="font-black text-gray-800">{item.name}</p><p className="text-[9px] text-gray-400 uppercase">{t('uni_details.id_prefix')}: {item.email}</p></td>
                       <td className="p-6 text-xl font-black text-red-600">{item.blood}</td>
                       <td className="p-6"><p className="text-xs font-black text-gray-700 uppercase">{item.dept}</p><p className="text-[9px] font-bold text-gray-400 uppercase">{item.role} | {item.year}</p></td>
                       <td className="p-6 text-xs font-black text-blue-500">{item.phone}</td>
@@ -267,7 +293,7 @@ const UniversityDetails = () => {
 
                 </tr>
               )) : (
-                <tr><td colSpan="10" className="p-20 text-center text-gray-400 font-bold italic">No records found.</td></tr>
+                <tr><td colSpan="10" className="p-20 text-center text-gray-400 font-bold italic">{t('uni_details.empty_state')}</td></tr>
               )}
             </tbody>
           </table>

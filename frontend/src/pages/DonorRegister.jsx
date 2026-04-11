@@ -11,8 +11,10 @@ import {
   Phone, Lock, Calendar, Droplet, ArrowRight, UserPlus,
   School, Loader2
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const DonorRegister = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   
   // --- MODAL & LOADING STATES ---
@@ -52,7 +54,7 @@ const DonorRegister = () => {
     
     // Validation for University Members
     if (community === 'Periyar University' && !idFile) {
-        return toast.error("Please upload your University ID card for verification.");
+        return toast.error(t('donor_reg.toast_id_req'));
     }
 
     setLoading(true);
@@ -65,12 +67,13 @@ const DonorRegister = () => {
       const data = await res.json();
       if (res.ok) {
         setShowOTP(true);
-        toast.success("Verification code sent to your email!");
+        toast.success(t('donor_reg.toast_otp_sent'));
       } else {
-        toast.error(data.message || "Failed to send OTP.");
+        toast.error(data.message || t('donor_reg.toast_otp_fail'));
       }
     } catch (err) {
-      toast.error("Connection error. Please check your server.");
+      console.error(err);
+      toast.error(t('donor_reg.toast_conn_err'));
     } finally {
       setLoading(false);
     }
@@ -103,11 +106,11 @@ const DonorRegister = () => {
         setShowOTP(false);
         setShowModal(true);
       } else {
-        toast.error(data.message || "Registration failed.");
+        toast.error(data.message || t('donor_reg.toast_reg_fail'));
       }
     } catch (err) {
       console.error("Frontend Error:", err);
-      toast.error("Registration error. Please try again.");
+      toast.error(t('donor_reg.toast_reg_err'));
     } finally {
       setLoading(false);
     }
@@ -131,8 +134,8 @@ const DonorRegister = () => {
             <div className="bg-white/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/10">
                 <UserPlus size={36} className="text-red-500" />
             </div>
-            <h2 className="text-4xl font-black italic tracking-tighter uppercase">Become a Hero</h2>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-2 italic">LifeDrop Hero Registration</p>
+            <h2 className="text-4xl font-black italic tracking-tighter uppercase">{t('donor_reg.title')}</h2>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-2 italic">{t('donor_reg.subtitle')}</p>
             <div className="absolute top-[-20px] left-[-20px] w-32 h-32 bg-red-600/10 rounded-full blur-3xl"></div>
         </div>
 
@@ -141,15 +144,15 @@ const DonorRegister = () => {
           {/* COMMUNITY SELECTION */}
           <div className="max-w-md mx-auto space-y-2">
             <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1">
-                <School size={12}/> Select Community
+                <School size={12}/> {t('donor_reg.select_community')}
             </label>
             <select 
                 className="w-full p-5 bg-slate-50 rounded-[24px] border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-black text-slate-700 transition-all shadow-inner"
                 onChange={(e) => setCommunity(e.target.value)}
                 value={community}
             >
-                <option value="Public">Public (General)</option>
-                <option value="Periyar University">Periyar University, Salem</option>
+                <option value="Public">{t('donor_reg.comm_public')}</option>
+                <option value="Periyar University">{t('donor_reg.comm_pu')}</option>
             </select>
           </div>
 
@@ -157,37 +160,37 @@ const DonorRegister = () => {
           {community === 'Periyar University' && (
             <div className="bg-indigo-50/50 p-8 rounded-[40px] border-2 border-dashed border-indigo-100 animate-in slide-in-from-top duration-500">
                 <h3 className="font-black text-indigo-900 text-lg flex items-center gap-2 uppercase tracking-tighter mb-6">
-                    <School size={20} className="text-indigo-600"/> University Details
+                    <School size={20} className="text-indigo-600"/> {t('donor_reg.uni_details')}
                 </h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                     <div className="space-y-4">
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">Department</label>
-                            <input type="text" placeholder="e.g. Computer Science" className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm" onChange={e => setFormData({...formData, department: e.target.value})} required />
+                            <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">{t('donor_reg.dept')}</label>
+                            <input type="text" placeholder={t('donor_reg.dept_ph')} className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm" onChange={e => setFormData({...formData, department: e.target.value})} required />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">Role</label>
+                                <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">{t('donor_reg.role')}</label>
                                 <select className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm" onChange={e => setFormData({...formData, roleType: e.target.value})}>
-                                    <option value="Student">Student</option>
-                                    <option value="Staff">Staff</option>
+                                    <option value="Student">{t('donor_reg.role_student')}</option>
+                                    <option value="Staff">{t('donor_reg.role_staff')}</option>
                                 </select>
                             </div>
                             {formData.roleType === 'Student' && (
                              <div className="space-y-1.5 animate-in fade-in duration-300">
-                               <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">Year</label>
+                               <label className="text-[9px] font-black text-indigo-400 uppercase ml-2">{t('donor_reg.year')}</label>
                                <select 
                         className="w-full p-4 bg-white rounded-2xl border-none font-bold text-indigo-900 shadow-sm appearance-none cursor-pointer" 
                                  onChange={e => setFormData({...formData, year: e.target.value})}
                                  required // ✅ Ippo ithu mandatory
                              >
-                                 <option value="">Select Year</option>
-                                 <option value="I YEAR">I YEAR</option>
-                                 <option value="II YEAR">II YEAR</option>
-                                 <option value="III YEAR">III YEAR</option>
-                                 <option value="IV YEAR">IV YEAR</option>
-                                 <option value="V YEAR">V YEAR</option>
+                                 <option value="">{t('donor_reg.year_select')}</option>
+                                 <option value="I YEAR">{t('donor_reg.year_1')}</option>
+                                 <option value="II YEAR">{t('donor_reg.year_2')}</option>
+                                 <option value="III YEAR">{t('donor_reg.year_3')}</option>
+                                 <option value="IV YEAR">{t('donor_reg.year_4')}</option>
+                                 <option value="V YEAR">{t('donor_reg.year_5')}</option>
                              </select>
                            </div>
                           )}
@@ -206,49 +209,49 @@ const DonorRegister = () => {
           {/* IDENTITY DETAILS BLOCK */}
           <div className="space-y-6">
             <h3 className="font-black text-gray-800 text-lg flex items-center gap-2 uppercase tracking-tighter border-b pb-2 border-gray-50">
-                <User size={18} className="text-red-600"/> Identity Details
+                <User size={18} className="text-red-600"/> {t('donor_reg.identity')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><User size={10}/> Full Name</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><User size={10}/> {t('donor_reg.name')}</label>
                   <div className="relative group">
                     <User className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
-                    <input type="text" placeholder="Your Name" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, fullName: e.target.value})} required />
+                    <input type="text" placeholder={t('donor_reg.name_ph')} className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, fullName: e.target.value})} required />
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Phone size={10}/> Phone Number</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Phone size={10}/> {t('donor_reg.phone')}</label>
                   <div className="relative group">
                     <Phone className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="tel" placeholder="+91" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, phone: e.target.value})} required />
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Mail size={10}/> Email Address</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Mail size={10}/> {t('donor_reg.email')}</label>
                   <div className="relative group">
                     <Mail className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
-                    <input type="email" placeholder="mail@example.com" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, email: e.target.value})} required />
+                    <input type="email" placeholder={t('donor_reg.email_ph')} className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, email: e.target.value})} required />
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Lock size={10}/> Security Password</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Lock size={10}/> {t('donor_reg.password')}</label>
                   <div className="relative group">
                     <Lock className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="password" placeholder="••••••••" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 transition-all shadow-inner" onChange={e => setFormData({...formData, password: e.target.value})} required />
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Droplet size={10}/> Blood Group</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Droplet size={10}/> {t('donor_reg.blood')}</label>
                   <div className="relative group">
                     <Droplet className="absolute left-4 top-4 text-red-500 transition-colors" size={18}/>
                     <select className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-700 appearance-none cursor-pointer transition-all shadow-inner" onChange={e => setFormData({...formData, bloodGroup: e.target.value})} required>
-                        <option value="">Choose Group</option>
+                        <option value="">{t('donor_reg.blood_ph')}</option>
                         {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                     </select>
                   </div>
                </div>
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Calendar size={10}/> Date of Birth</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest flex items-center gap-1"><Calendar size={10}/> {t('donor_reg.dob')}</label>
                   <div className="relative group">
                     <Calendar className="absolute left-4 top-4 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18}/>
                     <input type="date" className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-100 focus:bg-white outline-none font-bold text-gray-400 transition-all shadow-inner cursor-pointer" onChange={e => setFormData({...formData, dob: e.target.value})} required />
@@ -263,14 +266,14 @@ const DonorRegister = () => {
             <div className="space-y-8 flex flex-col h-full">
                <div className="flex-1">
                   <h3 className="font-black text-gray-800 text-lg flex items-center gap-2 uppercase tracking-tighter mb-6 border-b pb-2 border-gray-50">
-                      <ShieldCheck size={18} className="text-blue-600"/> Current Location
+                      <ShieldCheck size={18} className="text-blue-600"/> {t('donor_reg.location')}
                   </h3>
                   <LocationPicker position={position} setPosition={setPosition} />
                </div>
                <div className="flex gap-4 bg-red-50 p-6 rounded-[32px] border border-red-100 mt-auto shadow-sm">
                   <ShieldAlert size={28} className="text-red-600 shrink-0" />
                   <p className="text-[11px] font-bold text-red-800 leading-relaxed uppercase tracking-tight">
-                    By creating a hero account, you confirm that all information provided is true. LifeDrop is a connector platform; please verify medical details manually before donation.
+                    {t('donor_reg.legal_warning')}
                   </p>
                </div>
             </div>
@@ -279,10 +282,10 @@ const DonorRegister = () => {
             <div className="space-y-8 flex flex-col h-full">
                 <div className="bg-slate-900 rounded-[40px] p-8 text-white relative overflow-hidden shadow-2xl border-b-4 border-red-600">
                    <Activity className="absolute right-[-10px] bottom-[-10px] opacity-10" size={120} />
-                   <p className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em] mb-2">Medical Trust Rating</p>
+                   <p className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em] mb-2">{t('donor_reg.trust_rating')}</p>
                    <div className="flex items-end gap-2">
                       <h4 className="text-6xl font-black italic tracking-tighter">{healthScore}%</h4>
-                      <span className="text-xs font-bold opacity-50 mb-2 uppercase tracking-widest leading-none border-l pl-2 border-white/20">Safe Score</span>
+                      <span className="text-xs font-bold opacity-50 mb-2 uppercase tracking-widest leading-none border-l pl-2 border-white/20">{t('donor_reg.safe_score')}</span>
                    </div>
                    <div className="mt-6 w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
                       <div className="bg-red-600 h-full transition-all duration-1000" style={{ width: `${healthScore}%` }}></div>
@@ -291,13 +294,13 @@ const DonorRegister = () => {
 
                 <div>
                    <h3 className="font-black text-gray-800 text-lg flex items-center gap-2 uppercase tracking-tighter mb-6 border-b pb-2 border-gray-50">
-                       <ShieldCheck size={18} className="text-green-600"/> Eligibility Screening
+                       <ShieldCheck size={18} className="text-green-600"/> {t('donor_reg.screening')}
                    </h3>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <HealthCheck label="Weight > 50kg" checked={formData.weight} onChange={() => setFormData({...formData, weight: !formData.weight})} />
-                     <HealthCheck label="No alcohol (24h)" checked={!formData.alcohol} onChange={() => setFormData({...formData, alcohol: !formData.alcohol})} />
-                     <HealthCheck label="No surgery (6m)" checked={!formData.surgery} onChange={() => setFormData({...formData, surgery: !formData.surgery})} />
-                     <HealthCheck label="No Tattoos (6m)" checked={!formData.tattoo} onChange={() => setFormData({...formData, tattoo: !formData.tattoo})} />
+                     <HealthCheck label={t('donor_reg.check_weight')} checked={formData.weight} onChange={() => setFormData({...formData, weight: !formData.weight})} />
+                     <HealthCheck label={t('donor_reg.check_alcohol')} checked={!formData.alcohol} onChange={() => setFormData({...formData, alcohol: !formData.alcohol})} />
+                     <HealthCheck label={t('donor_reg.check_surgery')} checked={!formData.surgery} onChange={() => setFormData({...formData, surgery: !formData.surgery})} />
+                     <HealthCheck label={t('donor_reg.check_tattoo')} checked={!formData.tattoo} onChange={() => setFormData({...formData, tattoo: !formData.tattoo})} />
                    </div>
                 </div>
 
@@ -306,7 +309,7 @@ const DonorRegister = () => {
                     disabled={loading}
                     className="w-full bg-red-600 text-white py-6 rounded-[28px] font-black text-xl shadow-xl shadow-red-100 hover:bg-red-700 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 mt-auto uppercase tracking-widest"
                 >
-                  {loading ? <div className="flex items-center gap-2"><Loader2 className="animate-spin" size={20}/> PROCESSING...</div> : <><ShieldCheck size={24}/> GET VERIFIED & JOIN</>}
+                  {loading ? <div className="flex items-center gap-2"><Loader2 className="animate-spin" size={20}/> {t('donor_reg.processing')}</div> : <><ShieldCheck size={24}/> {t('donor_reg.btn_verify')}</>}
                 </button>
             </div>
           </div>

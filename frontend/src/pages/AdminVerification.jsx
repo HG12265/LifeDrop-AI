@@ -7,8 +7,10 @@ import {
   CheckCircle2, XCircle, Eye, Loader2, Search,
   AlertCircle, Phone, X, Maximize2
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const AdminVerification = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [pendingList, setPendingList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,7 @@ const AdminVerification = () => {
       const data = await res.json();
       setPendingList(data);
     } catch (err) {
-      toast.error("Failed to fetch pending verifications");
+      toast.error(t('admin_ver.toast_fetch_err'));
     } finally {
       setLoading(false);
     }
@@ -39,11 +41,11 @@ const AdminVerification = () => {
         method: 'POST'
       });
       if (res.ok) {
-        toast.success(`${name} verified & ID purged from DB!`);
+        toast.success(t('admin_ver.toast_verified', { name }));
         fetchPending();
       }
     } catch (err) {
-      toast.error("Approval failed");
+      toast.error(t('admin_ver.toast_appr_fail'));
     }
   };
 
@@ -55,7 +57,7 @@ const AdminVerification = () => {
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
       <Loader2 className="animate-spin text-red-600 mb-4" size={40} />
-      <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Auditing University Records...</p>
+      <p className="font-black text-slate-400 uppercase tracking-widest text-xs">{t('admin_ver.loading')}</p>
     </div>
   );
 
@@ -76,7 +78,7 @@ const AdminVerification = () => {
             alt="Full ID Card" 
             className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain border-4 border-white/10"
           />
-          <p className="absolute bottom-6 text-white/40 font-black text-[10px] uppercase tracking-[0.5em]">LifeDrop Secure Viewer</p>
+          <p className="absolute bottom-6 text-white/40 font-black text-[10px] uppercase tracking-[0.5em]">{t('admin_ver.secure_viewer')}</p>
         </div>
       )}
 
@@ -86,15 +88,15 @@ const AdminVerification = () => {
           <div className="flex items-center gap-4">
             <button onClick={() => navigate(-1)} className="bg-white/10 p-2 rounded-xl hover:bg-white/20 transition"><ArrowLeft size={20} /></button>
             <div>
-              <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none">Verification Center</h2>
-              <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-2">Pending University Audits</p>
+              <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none">{t('admin_ver.header_title')}</h2>
+              <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-2">{t('admin_ver.header_subtitle')}</p>
             </div>
           </div>
         </div>
         <div className="relative w-full md:w-80 z-10">
           <Search className="absolute left-4 top-4 text-slate-500" size={18} />
           <input 
-            type="text" placeholder="Search by name or ID..." 
+            type="text" placeholder={t('admin_ver.search_ph')} 
             className="w-full p-4 pl-12 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-red-500 focus:bg-white/10 transition-all font-bold text-sm"
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -111,7 +113,7 @@ const AdminVerification = () => {
             <div className="p-8 pb-4">
               <div className="flex justify-between items-start mb-4">
                 <div className="bg-red-50 p-3 rounded-2xl text-red-600 shadow-sm"><User size={24} /></div>
-                <span className="bg-orange-50 text-orange-600 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-orange-100">Pending Review</span>
+                <span className="bg-orange-50 text-orange-600 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-orange-100">{t('admin_ver.status_pending')}</span>
               </div>
               <h3 className="text-xl font-black text-gray-800 tracking-tight uppercase">{donor.full_name}</h3>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{donor.department} • {donor.role_type}</p>
@@ -138,7 +140,7 @@ const AdminVerification = () => {
                   href={`tel:${donor.phone}`}
                   className="flex-1 bg-slate-100 text-slate-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition active:scale-95"
                 >
-                  <Phone size={16} fill="currentColor" /> Call Donor
+                  <Phone size={16} fill="currentColor" /> {t('admin_ver.btn_call')}
                 </a>
                 
                 {/* APPROVE BUTTON */}
@@ -146,10 +148,10 @@ const AdminVerification = () => {
                   onClick={() => handleApprove(donor.unique_id, donor.full_name)}
                   className="flex-[2] bg-green-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-green-100 hover:bg-green-700 transition active:scale-95 flex items-center justify-center gap-2"
                 >
-                  <CheckCircle2 size={18} /> Verify Hero
+                  <CheckCircle2 size={18} /> {t('admin_ver.btn_verify')}
                 </button>
               </div>
-              <p className="text-center text-[9px] font-black text-slate-300 uppercase tracking-widest">LifeDrop ID: #{donor.unique_id}</p>
+              <p className="text-center text-[9px] font-black text-slate-300 uppercase tracking-widest">{t('admin_ver.lifedrop_id', { id: donor.unique_id })}</p>
             </div>
           </div>
         ))}
@@ -159,7 +161,7 @@ const AdminVerification = () => {
       {filteredList.length === 0 && (
         <div className="py-32 bg-white rounded-[60px] border-2 border-dashed border-gray-100 text-center flex flex-col items-center">
           <ShieldCheck size={60} className="text-slate-100 mb-4" />
-          <h3 className="font-black text-slate-300 uppercase tracking-widest">No Pending Verifications</h3>
+          <h3 className="font-black text-slate-300 uppercase tracking-widest">{t('admin_ver.empty_state')}</h3>
         </div>
       )}
     </div>

@@ -4,10 +4,12 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { ArrowLeft, TrendingUp, Users, Activity, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title);
 
 const AdminAnalytics = () => {
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const navigate = useNavigate();
 
@@ -21,7 +23,7 @@ const AdminAnalytics = () => {
 
   if (!data) return (
     <div className="h-screen flex items-center justify-center bg-slate-900 text-red-500 font-black text-xl animate-pulse italic">
-      GENERATING NEURAL INSIGHTS...
+      {t('admin_analytics.loading')}
     </div>
   );
 
@@ -30,13 +32,13 @@ const AdminAnalytics = () => {
     labels: data.labels,
     datasets: [
       {
-        label: 'Donors (Supply)',
+        label: t('admin_analytics.bar_donors'),
         data: data.donors,
         backgroundColor: '#3b82f6',
         borderRadius: 8,
       },
       {
-        label: 'Requests (Demand)',
+        label: t('admin_analytics.bar_requests'),
         data: data.requests,
         backgroundColor: '#ef4444',
         borderRadius: 8,
@@ -46,7 +48,7 @@ const AdminAnalytics = () => {
 
   // Chart 2: Success Rate (Doughnut)
   const doughnutData = {
-    labels: ['Success Saves', 'Pending Requests'],
+    labels: [t('admin_analytics.doughnut_success'), t('admin_analytics.doughnut_pending')],
     datasets: [{
       data: [data.total_saves, data.total_requests - data.total_saves],
       backgroundColor: ['#10b981', '#f1f5f9'],
@@ -63,21 +65,21 @@ const AdminAnalytics = () => {
         <div className="flex items-center gap-4">
            <button onClick={() => navigate(-1)} className="bg-slate-100 p-2 rounded-xl text-slate-500 hover:text-red-600 transition"><ArrowLeft/></button>
            <div>
-              <h2 className="text-3xl font-black italic tracking-tighter">System Analytics</h2>
-              <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Real-time Data Intelligence</p>
+              <h2 className="text-3xl font-black italic tracking-tighter">{t('admin_analytics.header_title')}</h2>
+              <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{t('admin_analytics.header_subtitle')}</p>
            </div>
         </div>
         <div className="hidden md:flex items-center gap-2 bg-green-50 px-4 py-2 rounded-2xl border border-green-100">
             <TrendingUp size={16} className="text-green-600"/>
-            <span className="text-xs font-black text-green-700 uppercase">System Optimized</span>
+            <span className="text-xs font-black text-green-700 uppercase">{t('admin_analytics.system_optimized')}</span>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-         <KPICard label="Total Donors" value={data.total_donors} sub="Active Nodes" icon={<Users className="text-blue-600"/>} />
-         <KPICard label="Total Requests" value={data.total_requests} sub="Demand Rate" icon={<Activity className="text-red-600"/>} />
-         <KPICard label="Lives Saved" value={data.total_saves} sub="Success Stories" icon={<Heart className="text-green-600"/>} />
+         <KPICard label={t('admin_analytics.kpi_total_donors')} value={data.total_donors} sub={t('admin_analytics.kpi_active_nodes')} icon={<Users className="text-blue-600"/>} />
+         <KPICard label={t('admin_analytics.kpi_total_requests')} value={data.total_requests} sub={t('admin_analytics.kpi_demand_rate')} icon={<Activity className="text-red-600"/>} />
+         <KPICard label={t('admin_analytics.kpi_lives_saved')} value={data.total_saves} sub={t('admin_analytics.kpi_success_stories')} icon={<Heart className="text-green-600"/>} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -85,8 +87,8 @@ const AdminAnalytics = () => {
         {/* Main Bar Chart - Supply vs Demand */}
         <div className="lg:col-span-2 bg-white p-8 rounded-[48px] shadow-2xl border border-gray-50">
             <div className="mb-8">
-                <h3 className="font-black text-gray-800 text-xl italic uppercase">Supply vs Demand Analysis</h3>
-                <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">Comparison of Donors vs Requirements per Blood Group</p>
+                <h3 className="font-black text-gray-800 text-xl italic uppercase">{t('admin_analytics.chart_analysis_title')}</h3>
+                <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">{t('admin_analytics.chart_analysis_desc')}</p>
             </div>
             <div className="h-[350px]">
                 <Bar data={barData} options={{ maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } } }} />
@@ -96,22 +98,22 @@ const AdminAnalytics = () => {
         {/* Circular Analytics - Success Ratio */}
         <div className="bg-slate-900 p-8 rounded-[48px] shadow-2xl text-white flex flex-col items-center justify-between">
             <div className="text-center">
-                <h3 className="font-black text-gray-400 text-xs uppercase tracking-[0.3em] mb-2">Overall Success Ratio</h3>
+                <h3 className="font-black text-gray-400 text-xs uppercase tracking-[0.3em] mb-2">{t('admin_analytics.success_ratio_title')}</h3>
                 <div className="w-full max-w-[200px] mx-auto my-6">
                     <Doughnut data={doughnutData} />
                 </div>
                 <h4 className="text-5xl font-black italic">
                     {((data.total_saves / (data.total_requests || 1)) * 100).toFixed(1)}%
                 </h4>
-                <p className="text-[10px] font-bold text-green-500 uppercase mt-2 tracking-widest">Request Completion Rate</p>
+                <p className="text-[10px] font-bold text-green-500 uppercase mt-2 tracking-widest">{t('admin_analytics.completion_rate')}</p>
             </div>
             
             <div className="w-full mt-8 p-6 bg-white/5 rounded-[32px] border border-white/5">
-                <p className="text-[10px] font-black opacity-40 uppercase mb-4">Critical Insight</p>
+                <p className="text-[10px] font-black opacity-40 uppercase mb-4">{t('admin_analytics.critical_insight')}</p>
                 <p className="text-sm font-bold leading-relaxed italic">
                     {data.total_requests > data.total_donors 
-                      ? "⚠️ Demand is currently exceeding supply. Increase donor outreach."
-                      : "✅ System is stable. Supply meets current demand levels."}
+                      ? t('admin_analytics.insight_excess')
+                      : t('admin_analytics.insight_stable')}
                 </p>
             </div>
         </div>

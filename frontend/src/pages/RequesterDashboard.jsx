@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { API_URL } from '../config'; 
 import ConfirmModal from '../components/ConfirmModal';
@@ -8,8 +8,10 @@ import {
   Phone, Settings, User, MessageSquare, School
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const RequesterDashboard = ({ user }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [history, setHistory] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, completed: 0 });
@@ -19,7 +21,7 @@ const RequesterDashboard = ({ user }) => {
   const [selectedReqId, setSelectedReqId] = useState(null);
 
   // 1. Data Fetching Logic (Sync with Backend assigned_donor API)
-  const fetchHistory = () => {
+  const fetchHistory = useCallback(() => {
     if (!user?.unique_id) return;
     fetch(`${API_URL}/api/requester/history/${user.unique_id}`, {
       credentials: 'include'
@@ -34,13 +36,13 @@ const RequesterDashboard = ({ user }) => {
       setStats({ total, pending, completed });
     })
     .catch(err => console.error("Error fetching history:", err));
-  };
+  }, [user?.unique_id]);
 
   useEffect(() => {
     fetchHistory();
     const interval = setInterval(fetchHistory, 10000); 
     return () => clearInterval(interval);
-  }, [user.unique_id]);
+  }, [fetchHistory]);
 
   const triggerReceivedModal = (reqId) => {
     setSelectedReqId(reqId);
@@ -55,11 +57,12 @@ const RequesterDashboard = ({ user }) => {
         credentials: 'include'
       });
       if (res.ok) {
-        toast.success("Life Saved! Case Closed Successfully.");
+        toast.success(t('req_dash.toast_closed'));
         fetchHistory();
       }
     } catch (err) {
-      toast.error("Connection error. Please try again.");
+      console.error(err);
+      toast.error(t('req_dash.toast_conn_err'));
     }
   };
 
@@ -70,9 +73,9 @@ const RequesterDashboard = ({ user }) => {
       <ConfirmModal 
         isOpen={showReceivedModal}
         type="success"
-        title="Confirm Blood Receipt"
-        message="Are you sure you have received the blood? This will officially close the request and notify the donor hero."
-        confirmText="YES, I RECEIVED IT"
+        title={t('req_dash.modal_title')}
+        message={t('req_dash.modal_msg')}
+        confirmText={t('req_dash.modal_btn')}
         onConfirm={finalizeReceived}
         onCancel={() => setShowReceivedModal(false)}
       />
@@ -86,13 +89,13 @@ const RequesterDashboard = ({ user }) => {
                         <School size={32} className="text-white" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-black italic tracking-tighter uppercase">Periyar University Circle</h2>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-1">Verified Institutional Requester</p>
+                        <h2 className="text-2xl font-black italic tracking-tighter uppercase">{t('req_dash.uni_circle')}</h2>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-1">{t('req_dash.uni_member')}</p>
                     </div>
                 </div>
                 <div className="bg-white/5 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 text-center">
-                    <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">Department</p>
-                    <p className="text-sm font-black uppercase">{user.department || "General"}</p>
+                    <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">{t('req_dash.dept')}</p>
+                    <p className="text-sm font-black uppercase">{user.department || t('req_dash.general')}</p>
                 </div>
             </div>
             <School size={180} className="absolute right-[-40px] top-[-40px] opacity-5 -rotate-12" />
@@ -111,18 +114,18 @@ const RequesterDashboard = ({ user }) => {
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-3xl font-black text-gray-800 tracking-tighter italic leading-none">
-                Welcome, {user.name} 👋
+                {t('req_dash.welcome', { name: user.name })}
               </h2>
               <button 
                 onClick={() => navigate('/edit-profile')}
                 className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-300 group"
-                title="Edit Profile"
+                title={t('req_dash.edit_profile')}
               >
                 <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
               </button>
             </div>
             <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-2">
-              Requester Control Center • ID: #{user.unique_id}
+              {t('req_dash.control_center', { id: user.unique_id })}
             </p>
           </div>
         </div>
@@ -131,21 +134,21 @@ const RequesterDashboard = ({ user }) => {
           onClick={() => navigate('/new-request')}
           className="w-full md:w-auto bg-red-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-red-100 flex items-center justify-center gap-2 hover:bg-red-700 active:scale-95 transition transform relative z-10"
         >
-          <Plus size={24} /> NEW REQUEST
+          <Plus size={24} /> {t('req_dash.btn_new')}
         </button>
       </div>
 
       {/* 3. STATS CARDS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <StatCard icon={<History size={20}/>} label="Total Requests" value={stats.total} color="bg-slate-900" />
-          <StatCard icon={<Droplet size={20}/>} label="Active Requests" value={stats.pending} color="bg-red-600" />
-          <StatCard icon={<CheckCircle2 size={20}/>} label="Closed Requests" value={stats.completed} color="bg-green-600" />
+          <StatCard icon={<History size={20}/>} label={t('req_dash.stat_total')} value={stats.total} color="bg-slate-900" />
+          <StatCard icon={<Droplet size={20}/>} label={t('req_dash.stat_active')} value={stats.pending} color="bg-red-600" />
+          <StatCard icon={<CheckCircle2 size={20}/>} label={t('req_dash.stat_closed')} value={stats.completed} color="bg-green-600" />
       </div>
 
       {/* 4. REQUEST TIMELINE SECTION */}
       <div className="bg-white rounded-[40px] p-6 md:p-10 border border-gray-100 shadow-2xl">
         <h3 className="font-black text-gray-800 text-xl mb-8 flex items-center gap-2 italic uppercase tracking-tighter border-b pb-4">
-            <Clock size={24} className="text-red-600" /> Request History & Status
+            <Clock size={24} className="text-red-600" /> {t('req_dash.timeline_title')}
         </h3>
         
         <div className="grid gap-8">
@@ -155,7 +158,7 @@ const RequesterDashboard = ({ user }) => {
                     
                     <div className="flex gap-6 items-center">
                         <div className="bg-red-600 text-white w-16 h-16 rounded-[24px] flex flex-col items-center justify-center shadow-lg shadow-red-100 group-hover:scale-110 transition duration-300">
-                            <span className="text-[10px] font-black opacity-60 leading-none mb-1 uppercase">Group</span>
+                            <span className="text-[10px] font-black opacity-60 leading-none mb-1 uppercase">{t('req_dash.card_group')}</span>
                             <span className="text-2xl font-black leading-none">{req.bloodGroup}</span>
                         </div>
                         <div>
@@ -174,7 +177,7 @@ const RequesterDashboard = ({ user }) => {
                             req.status === 'Rejected' ? 'bg-gray-100 text-gray-400' : 'bg-orange-50 text-orange-600 border-orange-100'
                         }`}>
                             {req.status === 'On the way' && <Truck size={12} />}
-                            {req.status === 'On the way' ? 'Blood Dispatched' : req.status}
+                            {req.status === 'On the way' ? t('req_dash.status_dispatched') : t(`req_dash.status_${req.status.replace(/ /g, '_').toLowerCase()}`)}
                         </div>
 
                         <div className="flex flex-wrap justify-end gap-3 w-full">
@@ -183,7 +186,7 @@ const RequesterDashboard = ({ user }) => {
                                   onClick={() => navigate(`/blockchain/${req.id}`)}
                                   className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl font-black text-[9px] tracking-widest hover:bg-black transition shadow-lg"
                                 >
-                                  <Link2 size={14} className="text-red-500" /> VIEW BLOCKCHAIN LEDGER
+                                  <Link2 size={14} className="text-red-500" /> {t('req_dash.btn_ledger')}
                                 </button>
                             )}
 
@@ -192,7 +195,7 @@ const RequesterDashboard = ({ user }) => {
                                     onClick={() => triggerReceivedModal(req.id)}
                                     className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl font-black text-[9px] tracking-widest shadow-lg shadow-green-100 hover:bg-green-700 transition active:scale-95"
                                 >
-                                    <CheckCircle2 size={14} /> I RECEIVED THE BLOOD
+                                    <CheckCircle2 size={14} /> {t('req_dash.btn_received')}
                                 </button>
                             )}
                         </div>
@@ -210,7 +213,7 @@ const RequesterDashboard = ({ user }) => {
                                   <User size={24} />
                               </div>
                               <div>
-                                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Assigned Hero</p>
+                                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{t('req_dash.assigned_hero')}</p>
                                   <h4 className="font-black text-gray-800 text-lg uppercase tracking-tight">{req.assigned_donor.name}</h4>
                               </div>
                           </div>
@@ -220,25 +223,25 @@ const RequesterDashboard = ({ user }) => {
                                 href={`tel:${req.assigned_donor.phone}`} 
                                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs shadow-xl hover:bg-black transition active:scale-95"
                             >
-                                <Phone size={16} fill="white" /> CALL
+                                <Phone size={16} fill="white" /> {t('req_dash.btn_call')}
                             </a>
 
                             <a 
                                 href={`https://wa.me/${req.assigned_donor.phone.replace(/\s/g, '')}?text=${encodeURIComponent(
-                                    `Hello ${req.assigned_donor.name}, I am ${user.name} from LifeDrop. I have sent a blood request for patient ${req.patient} (Group: ${req.bloodGroup}) at ${req.hospital}. Please check the app and help if possible! 🙏`
+                                    t('req_dash.wa_msg', { donor: req.assigned_donor.name, user: user.name, patient: req.patient, bloodGrp: req.bloodGroup, hospital: req.hospital })
                                 )}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-4 rounded-2xl font-black text-xs shadow-xl hover:bg-green-700 transition active:scale-95"
                             >
-                                <MessageSquare size={16} fill="white" /> WHATSAPP
+                                <MessageSquare size={16} fill="white" /> {t('req_dash.btn_whatsapp')}
                             </a>
                           </div>
                       </div>
                       
                       {req.status === 'Pending' && (
                         <p className="text-[9px] font-bold text-orange-500 mt-4 uppercase tracking-[0.2em] italic text-center sm:text-left flex items-center gap-1">
-                            <AlertCircle size={10}/> Waiting for donor to accept on app. You can contact them directly above for faster response.
+                            <AlertCircle size={10}/> {t('req_dash.alert_waiting')}
                         </p>
                       )}
                   </div>
@@ -248,7 +251,7 @@ const RequesterDashboard = ({ user }) => {
                    <div className="mt-6 flex items-center gap-3 bg-orange-50 p-4 rounded-2xl border border-orange-100">
                       <div className="bg-orange-500 p-1.5 rounded-full text-white"><AlertCircle size={14}/></div>
                       <p className="text-xs font-bold text-orange-600 italic">
-                        Searching for compatible heroes nearby. You will see donor details once you assign a request.
+                        {t('req_dash.alert_searching')}
                       </p>
                    </div>
                 )}
@@ -258,8 +261,8 @@ const RequesterDashboard = ({ user }) => {
                 <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
                    <Droplet size={48} className="text-gray-100" />
                 </div>
-                <p className="text-gray-400 font-black text-xl tracking-tight">Your Dashboard is Empty</p>
-                <p className="text-gray-400 text-xs italic mt-2 uppercase tracking-widest">Start saving lives by creating your first request.</p>
+                <p className="text-gray-400 font-black text-xl tracking-tight">{t('req_dash.empty_dash')}</p>
+                <p className="text-gray-400 text-xs italic mt-2 uppercase tracking-widest">{t('req_dash.empty_desc')}</p>
             </div>
           )}
         </div>

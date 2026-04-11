@@ -5,9 +5,11 @@ import {
   Heart, MapPin, Users, ShieldCheck, 
   ArrowRight, Activity, Droplets, Zap 
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const Home = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [stats, setStats] = useState({ donors: 0, saves: 0 });
 
   useEffect(() => {
@@ -31,16 +33,16 @@ const Home = () => {
 
         <div className="relative z-10 max-w-5xl mx-auto text-center space-y-8">
           <div className="inline-flex items-center gap-2 bg-red-50 border border-red-100 px-4 py-2 rounded-full text-red-600 font-black text-[10px] tracking-[0.2em] uppercase animate-bounce">
-            <Zap size={14} fill="currentColor" /> Real-time Matching Enabled
+            <Zap size={14} fill="currentColor" /> {t('home.hero_badge')}
           </div>
 
           <h1 className="text-6xl md:text-8xl font-black text-slate-900 tracking-tighter leading-tight">
-            Saving Lives <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-400">Through Technology</span>
+            {t('home.hero_title_1')} <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-400">{t('home.hero_title_2')}</span>
           </h1>
 
           <p className="max-w-2xl mx-auto text-gray-500 text-lg md:text-xl font-medium leading-relaxed">
-            The world’s first blockchain-secured, AI-powered blood donation platform. Connecting heroes with those in need, instantly.
+            {t('home.hero_desc')}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-6">
@@ -48,13 +50,13 @@ const Home = () => {
               onClick={() => navigate('/register-requester')}
               className="w-full sm:w-auto bg-red-600 text-white px-10 py-5 rounded-[24px] font-black text-lg shadow-2xl shadow-red-200 hover:bg-red-700 hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3"
             >
-              <Heart size={24} /> REQUEST BLOOD
+              <Heart size={24} /> {t('home.btn_request')}
             </button>
             <button 
               onClick={() => navigate('/register-donor')}
               className="w-full sm:w-auto bg-slate-900 text-white px-10 py-5 rounded-[24px] font-black text-lg shadow-2xl shadow-slate-200 hover:bg-black hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3"
             >
-              BECOME A DONOR <ArrowRight size={24} />
+              {t('home.btn_donor')} <ArrowRight size={24} />
             </button>
           </div>
         </div>
@@ -69,25 +71,25 @@ const Home = () => {
         <br></br>
         <div className="max-w-7xl mx-auto space-y-16 text-center">
            <div>
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Our Ecosystem</h2>
-              <p className="text-gray-400 font-bold mt-2 uppercase tracking-widest text-xs">Why LifeDrop is Different</p>
+              <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">{t('home.eco_title')}</h2>
+              <p className="text-gray-400 font-bold mt-2 uppercase tracking-widest text-xs">{t('home.eco_subtitle')}</p>
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
               <FeatureCard 
                 icon={<Activity className="text-red-600" size={32} />}
-                title="AI Matching"
-                desc="Smart compatibility algorithms finding universal and exact donors in milliseconds."
+                title={t('home.eco_f1_title')}
+                desc={t('home.eco_f1_desc')}
               />
               <FeatureCard 
                 icon={<ShieldCheck className="text-green-600" size={32} />}
-                title="Blockchain Secured"
-                desc="Every donation step is recorded on an immutable ledger for total transparency."
+                title={t('home.eco_f2_title')}
+                desc={t('home.eco_f2_desc')}
               />
               <FeatureCard 
                 icon={<MapPin className="text-blue-600" size={32} />}
-                title="Live Tracking"
-                desc="Real-time map and blood bag tracking with unique bag serial IDs."
+                title={t('home.eco_f3_title')}
+                desc={t('home.eco_f3_desc')}
               />
            </div>
         </div>
@@ -97,24 +99,24 @@ const Home = () => {
       <section className="bg-gray-50 py-32 px-6">
         <div className="max-w-5xl mx-auto space-y-20">
            <div className="text-center">
-              <h2 className="text-4xl font-black italic">How It Works?</h2>
+              <h2 className="text-4xl font-black italic">{t('home.how_title')}</h2>
            </div>
 
            <div className="space-y-24">
               <StepRow 
-                num="01" title="Request or Register" 
-                desc="Users can create a request with patient details or join as a verified donor with a health score." 
+                num="01" title={t('home.how_s1_title')} 
+                desc={t('home.how_s1_desc')} 
                 imageIcon={<UserPlus className="text-red-600" size={40}/>}
               />
               <StepRow 
-                num="02" title="AI Search & Match" 
-                desc="Our AI filters donors by distance, compatibility, and availability (90-day cooldown check)." 
+                num="02" title={t('home.how_s2_title')} 
+                desc={t('home.how_s2_desc')} 
                 imageIcon={<Activity className="text-blue-600" size={40}/>}
                 reverse
               />
               <StepRow 
-                num="03" title="Verified Donation" 
-                desc="Blockchain verifies the donation, generates a Hero Certificate, and updates the stock." 
+                num="03" title={t('home.how_s3_title')} 
+                desc={t('home.how_s3_desc')} 
                 imageIcon={<ShieldCheck className="text-green-600" size={40}/>}
               />
            </div>
@@ -126,13 +128,13 @@ const Home = () => {
          <div className="max-w-4xl mx-auto bg-red-600 rounded-[60px] p-12 md:p-20 shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 group-hover:scale-110 transition duration-[5000ms]"></div>
             <h2 className="text-4xl md:text-6xl font-black text-white relative z-10 leading-tight">
-               Ready to save <br /> someone's life?
+               {t('home.cta_title')}
             </h2>
             <button 
               onClick={() => navigate('/register-donor')}
               className="mt-10 bg-white text-red-600 px-12 py-5 rounded-[24px] font-black text-xl hover:bg-slate-900 hover:text-white transition-all relative z-10 active:scale-95 shadow-xl"
             >
-               JOIN AS A HERO NOW
+               {t('home.btn_join')}
             </button>
          </div>
       </section>

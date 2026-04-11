@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { API_URL } from '../config'; 
 import { useNavigate } from 'react-router-dom';
-import { LogIn, UserCircle, Heart, ArrowRight } from 'lucide-react'; // ArrowRight-ah mela seththuten
+import { LogIn, UserCircle, Heart, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner'; 
+import { useTranslation } from 'react-i18next';
 
 const Login = ({ setUser }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '', role: 'donor' });
   const [loading, setLoading] = useState(false);
@@ -39,8 +41,8 @@ const Login = ({ setUser }) => {
         }); 
         
         // Success Toast
-        toast.success(`Welcome back, ${data.user.name}!`, {
-            description: "Accessing your secure dashboard...",
+        toast.success(t('login.toast_welcome', { name: data.user.name }), {
+            description: t('login.toast_access'),
         });
         
         // Role-based Navigation
@@ -52,11 +54,11 @@ const Login = ({ setUser }) => {
           navigate('/requester-dashboard');
         }
       } else {
-        toast.error(data.message || "Invalid Credentials");
+        toast.error(data.message || t('login.err_invalid'));
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("Connection error! Please check if the server is live.");
+      toast.error(t('login.err_conn'));
     } finally {
       setLoading(false);
     }
@@ -71,8 +73,8 @@ const Login = ({ setUser }) => {
           <div className="bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
             <LogIn size={32} />
           </div>
-          <h2 className="text-3xl font-black tracking-tight italic">Welcome Back</h2>
-          <p className="opacity-70 text-[10px] font-black mt-1 uppercase tracking-[0.2em]">LifeDrop Secure Access</p>
+          <h2 className="text-3xl font-black tracking-tight italic">{t('login.welcome')}</h2>
+          <p className="opacity-70 text-[10px] font-black mt-1 uppercase tracking-[0.2em]">{t('login.subtitle')}</p>
           <div className="absolute top-[-10px] right-[-10px] w-20 h-20 bg-white/10 rounded-full blur-2xl"></div>
         </div>
 
@@ -84,20 +86,20 @@ const Login = ({ setUser }) => {
               onClick={() => setFormData({...formData, role: 'donor'})} 
               className={`flex-1 py-3 rounded-xl font-black text-sm transition-all duration-300 flex items-center justify-center gap-2 ${formData.role === 'donor' ? 'bg-white shadow-md text-red-600 scale-105' : 'text-gray-400'}`}
             >
-              <Heart size={16} fill={formData.role === 'donor' ? "currentColor" : "none"} /> Donor
+              <Heart size={16} fill={formData.role === 'donor' ? "currentColor" : "none"} /> {t('login.role_donor')}
             </button>
             <button 
               type="button"
               onClick={() => setFormData({...formData, role: 'requester'})} 
               className={`flex-1 py-3 rounded-xl font-black text-sm transition-all duration-300 flex items-center justify-center gap-2 ${formData.role === 'requester' ? 'bg-white shadow-md text-red-600 scale-105' : 'text-gray-400'}`}
             >
-              <UserCircle size={16} /> Requester
+              <UserCircle size={16} /> {t('login.role_requester')}
             </button>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest italic">Email Address</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest italic">{t('login.email')}</label>
               <input 
                 type="email" 
                 placeholder="name@mail.com" 
@@ -108,7 +110,7 @@ const Login = ({ setUser }) => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest italic">Password</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest italic">{t('login.password')}</label>
               <input 
                 type="password" 
                 placeholder="••••••••" 
@@ -123,7 +125,7 @@ const Login = ({ setUser }) => {
                 onClick={() => navigate('/forgot-password')} 
                 className="text-[10px] font-black text-gray-400 uppercase tracking-widest cursor-pointer hover:text-red-600 transition"
               >
-                Forgot Password?
+                {t('login.forgot')}
               </span>
             </div>
 
@@ -135,11 +137,11 @@ const Login = ({ setUser }) => {
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  AUTHENTICATING...
+                  {t('login.authenticating')}
                 </div>
               ) : (
                 <>
-                  LOGIN TO DASHBOARD
+                  {t('login.btn_login')}
                   <ArrowRight size={20} />
                 </>
               )}
@@ -147,9 +149,9 @@ const Login = ({ setUser }) => {
           </form>
           
           <p className="text-center mt-8 text-xs text-gray-400 font-medium tracking-tight">
-            {formData.role === 'admin' ? "System Administrator Identity Verified" : "New to LifeDrop?"} 
+            {formData.role === 'admin' ? "" : t('login.new_user')} 
             <span className="text-red-600 font-black cursor-pointer ml-1 hover:underline uppercase tracking-tighter" onClick={() => navigate('/')}>
-               {formData.role === 'admin' ? "" : "Register here"}
+               {formData.role === 'admin' ? "" : t('login.register')}
             </span>
           </p>
         </div>

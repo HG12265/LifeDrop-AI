@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, Droplet, LogOut, LayoutDashboard, UserCircle, Bell, Megaphone, Download, Smartphone } from 'lucide-react';
 import { API_URL } from '../config';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const Navbar = ({ user, handleLogout }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
@@ -85,7 +88,7 @@ const Navbar = ({ user, handleLogout }) => {
           </div>
           <div className="flex flex-col">
             <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none italic">LifeDrop</span>
-            <span className="text-[8px] font-black text-red-600 uppercase tracking-[0.3em]">Saving Lives</span>
+            <span className="text-[8px] font-black text-red-600 uppercase tracking-[0.3em]">{t('navbar.saving_lives')}</span>
           </div>
         </Link>
 
@@ -98,17 +101,18 @@ const Navbar = ({ user, handleLogout }) => {
               onClick={handleInstallClick}
               className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all border border-blue-100 mr-2 animate-pulse"
             >
-              <Download size={14} /> Get App
+              <Download size={14} /> {t('navbar.get_app')}
             </button>
           )}
 
           <div className="flex items-center gap-6 border-r pr-6 border-gray-100 h-10">
             <Link to="/" className={`text-sm font-black uppercase tracking-widest transition-colors ${
               isActive('/') ? 'text-red-600' : 'text-slate-400 hover:text-slate-900'
-            }`}>Home</Link>
+            }`}>{t('navbar.home')}</Link>
             <Link to="/contact" className={`text-sm font-black uppercase tracking-widest transition-colors ${
               isActive('/contact') ? 'text-red-600' : 'text-slate-400 hover:text-slate-900'
-            }`}>Contact</Link>
+            }`}>{t('navbar.contact')}</Link>
+            <LanguageSwitcher />
           </div>
           
           {user && (
@@ -134,7 +138,7 @@ const Navbar = ({ user, handleLogout }) => {
                 className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-black text-[10px] hover:bg-red-600 transition-all duration-300 shadow-lg uppercase tracking-widest"
               >
                 <LayoutDashboard size={14} />
-                Dashboard
+                {t('navbar.dashboard')}
               </Link>
               
               <div className="flex items-center gap-2 bg-slate-50 p-1 pr-3 rounded-2xl border border-gray-100">
@@ -149,7 +153,7 @@ const Navbar = ({ user, handleLogout }) => {
             </div>
           ) : (
             <Link to="/login" className="bg-red-600 text-white px-8 py-3 rounded-2xl font-black text-xs shadow-2xl shadow-red-200 hover:bg-slate-900 transition-all duration-500 uppercase tracking-widest">
-              Join as Hero
+              {t('navbar.join_as_hero')}
             </Link>
           )}
         </div>
@@ -180,7 +184,7 @@ const Navbar = ({ user, handleLogout }) => {
         {showNotifs && (
           <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-[90vw] md:w-96 bg-white rounded-[32px] shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in duration-300 z-[1100]">
             <div className="bg-slate-900 p-5 text-white flex justify-between items-center">
-              <h4 className="font-black text-xs uppercase tracking-widest italic">Emergency Alerts</h4>
+              <h4 className="font-black text-xs uppercase tracking-widest italic">{t('navbar.emerge_alerts')}</h4>
               <button onClick={() => setShowNotifs(false)} className="p-1 hover:bg-white/10 rounded-lg"><X size={18}/></button>
             </div>
             <div className="max-h-96 overflow-y-auto p-4 space-y-3 bg-slate-50">
@@ -192,7 +196,7 @@ const Navbar = ({ user, handleLogout }) => {
               )) : (
                 <div className="py-10 text-center">
                   <Bell size={30} className="mx-auto text-gray-200 mb-2" />
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No new messages</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('navbar.no_msgs')}</p>
                 </div>
               )}
             </div>
@@ -208,36 +212,39 @@ const Navbar = ({ user, handleLogout }) => {
               <div className="bg-red-600 p-2 rounded-xl text-white shadow-lg shadow-red-200"><Droplet size={20}/></div>
               <span className="text-xl font-black italic">LifeDrop</span>
             </div>
-            <button onClick={() => setIsOpen(false)} className="bg-slate-100 p-3 rounded-2xl"><X size={24}/></button>
+            <div className="flex items-center gap-2">
+              <LanguageSwitcher />
+              <button onClick={() => setIsOpen(false)} className="bg-slate-100 p-3 rounded-2xl"><X size={24}/></button>
+            </div>
           </div>
 
           <div className="flex flex-col gap-4">
-             <Link to="/" onClick={()=>setIsOpen(false)} className="text-4xl font-black text-slate-900 border-b pb-6 border-slate-50">Home</Link>
-             <Link to="/contact" onClick={()=>setIsOpen(false)} className="text-4xl font-black text-slate-900 border-b pb-6 border-slate-50">Contact</Link>
+             <Link to="/" onClick={()=>setIsOpen(false)} className="text-4xl font-black text-slate-900 border-b pb-6 border-slate-50">{t('navbar.home')}</Link>
+             <Link to="/contact" onClick={()=>setIsOpen(false)} className="text-4xl font-black text-slate-900 border-b pb-6 border-slate-50">{t('navbar.contact')}</Link>
              
              {/* ✅ MOBILE MENU INSTALL OPTION (Maintained) */}
              {deferredPrompt && (
                <button onClick={() => { handleInstallClick(); setIsOpen(false); }} className="text-4xl font-black text-blue-600 border-b pb-6 border-slate-50 flex items-center justify-between">
-                  Install App <Smartphone size={30}/>
+                  {t('navbar.install_app')} <Smartphone size={30}/>
                </button>
              )}
 
              {user ? (
                <>
                  <Link to={getDashboardPath()} onClick={()=>setIsOpen(false)} className="text-4xl font-black text-red-600 border-b pb-6 border-slate-50 flex items-center justify-between">
-                    Dashboard <ArrowRight size={30}/>
+                    {t('navbar.dashboard')} <ArrowRight size={30}/>
                  </Link>
                  <div className="mt-auto bg-slate-900 p-8 rounded-[40px] text-white flex flex-col gap-6">
                     <div>
-                      <p className="text-xs font-bold opacity-40 uppercase mb-1">Logged in Hero</p>
+                      <p className="text-xs font-bold opacity-40 uppercase mb-1">{t('navbar.logged_in_hero')}</p>
                       <h4 className="text-2xl font-black">{user.name}</h4>
                     </div>
-                    <button onClick={onLogout} className="bg-red-600 w-full py-4 rounded-2xl font-black text-sm uppercase">Logout Account</button>
+                    <button onClick={onLogout} className="bg-red-600 w-full py-4 rounded-2xl font-black text-sm uppercase">{t('navbar.logout')}</button>
                  </div>
                </>
              ) : (
                <Link to="/login" onClick={()=>setIsOpen(false)} className="bg-red-600 text-white p-8 rounded-[40px] text-center text-2xl font-black mt-12 shadow-2xl shadow-red-200">
-                 Login / Signup
+                 {t('navbar.login_signup')}
                </Link>
              )}
           </div>

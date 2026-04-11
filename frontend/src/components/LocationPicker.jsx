@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet';
 import { toast } from 'sonner';
 import 'leaflet/dist/leaflet.css';
+import { useTranslation } from 'react-i18next';
 
 // --- MARKER BUG FIX ---
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -32,6 +33,7 @@ const MapRecenter = ({ position }) => {
 };
 
 const LocationPicker = ({ position, setPosition }) => {
+  const { t } = useTranslation();
   
   // Map-la click panna marker move aaga
   function LocationMarker() {
@@ -60,7 +62,7 @@ const LocationPicker = ({ position, setPosition }) => {
   // 2. Improved Accuracy Geolocation Logic
   const handleCurrentLocation = () => {
     if (!navigator.geolocation) {
-      return toast.error("Geolocation is not supported by your browser.");
+      return toast.error(t('loc_picker.toast_geo_err'));
     }
 
     const options = {
@@ -78,7 +80,7 @@ const LocationPicker = ({ position, setPosition }) => {
         setPosition(newPos); // State update aagum pothu MapRecenter trigger aagum
       },
       (err) => {
-        toast.error("Error: " + err.message + ". Please enable GPS/Location.");
+        toast.error(t('loc_picker.toast_enable_gps', { error: err.message }));
       },
       options
     );
@@ -87,13 +89,13 @@ const LocationPicker = ({ position, setPosition }) => {
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">📍 Pin Your Location</label>
+        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">📍 {t('loc_picker.label_pin')}</label>
         <button 
           type="button"
           onClick={handleCurrentLocation}
           className="text-[10px] bg-blue-600 text-white px-4 py-1.5 rounded-full font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition active:scale-95"
         >
-          USE MY CURRENT LOCATION
+          {t('loc_picker.btn_current')}
         </button>
       </div>
 
@@ -114,7 +116,7 @@ const LocationPicker = ({ position, setPosition }) => {
       
       <div className="flex justify-center">
         <p className="text-[9px] font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100 uppercase tracking-tighter">
-          Lat: {position.lat.toFixed(4)} | Lng: {position.lng.toFixed(4)} (Drag marker to adjust)
+          {t('loc_picker.label_drag', { lat: position.lat.toFixed(4), lng: position.lng.toFixed(4) })}
         </p>
       </div>
     </div>

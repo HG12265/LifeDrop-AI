@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { API_URL } from '../config'; 
 import { MessageSquare, Send, X, Bot, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const ChatBot = () => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([{ role: 'bot', text: 'Hello! I am LifeDrop AI. How can I help you today?' }]);
+  const [messages, setMessages] = useState([{ role: 'bot', text: t('chatbot.welcome') }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -25,7 +27,7 @@ const ChatBot = () => {
       const data = await res.json();
       setMessages(prev => [...prev, { role: 'bot', text: data.reply }]);
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'bot', text: "Server error. Please try again." }]);
+      setMessages(prev => [...prev, { role: 'bot', text: t('chatbot.err_server') }]);
     } finally {
       setLoading(false);
     }
@@ -59,13 +61,13 @@ const ChatBot = () => {
                 </div>
               </div>
             ))}
-            {loading && <p className="text-[10px] font-black text-gray-400 animate-pulse uppercase">AI is thinking...</p>}
+            {loading && <p className="text-[10px] font-black text-gray-400 animate-pulse uppercase">{t('chatbot.thinking')}</p>}
           </div>
 
           <div className="p-4 bg-white border-t flex gap-2">
             <input 
               className="flex-1 bg-gray-100 p-3 rounded-xl text-sm outline-none font-bold"
-              placeholder="Ask about blood stock, health..."
+              placeholder={t('chatbot.ph_input')}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}

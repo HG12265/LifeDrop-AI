@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { UploadCloud, ShieldCheck, Loader2, AlertCircle, XCircle, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { API_URL } from '../config';
 
 const IDCardUpload = ({ onImageSelect, mode = "admin", isVerified = false }) => {
+  const { t } = useTranslation();
   const [idPreview, setIdPreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -45,7 +47,7 @@ const IDCardUpload = ({ onImageSelect, mode = "admin", isVerified = false }) => 
   };
 
   const handleAiVerify = async () => {
-    if (!idPreview) return toast.error("Please select an image first");
+    if (!idPreview) return toast.error(t('id_upload.toast_img_first'));
     
     setLoading(true);
     // Gemini-ku anuppum pothu 'data:image/jpeg;base64,' prefix-ah thookanum
@@ -60,13 +62,13 @@ const IDCardUpload = ({ onImageSelect, mode = "admin", isVerified = false }) => 
       
       const data = await res.json();
       if (res.ok && data.is_valid) {
-        toast.success("AI Verified Successfully! ✅");
+        toast.success(t('id_upload.toast_ai_success'));
         onImageSelect(idPreview, true, data.role);
       } else {
-        toast.error(data.message || "AI could not verify this ID.");
+        toast.error(data.message || t('id_upload.toast_ai_fail'));
       }
     } catch (err) {
-      toast.error("AI Service Error. Try a clearer photo.");
+      toast.error(t('id_upload.toast_ai_err'));
     } finally {
       setLoading(false);
     }
@@ -82,7 +84,7 @@ const IDCardUpload = ({ onImageSelect, mode = "admin", isVerified = false }) => 
       {isVerified ? (
         <div className="flex flex-col items-center gap-2 py-4 animate-in zoom-in">
           <div className="bg-green-100 p-4 rounded-full text-green-600 shadow-lg"><ShieldCheck size={40} /></div>
-          <p className="font-black text-green-700 uppercase text-xs tracking-widest">Identity Verified</p>
+          <p className="font-black text-green-700 uppercase text-xs tracking-widest">{t('id_upload.label_verified')}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -91,10 +93,10 @@ const IDCardUpload = ({ onImageSelect, mode = "admin", isVerified = false }) => 
               {loading ? <Loader2 className="animate-spin text-indigo-600" size={32} /> : (
                 <div className="bg-indigo-50 p-4 rounded-3xl text-indigo-600 mb-2"><UploadCloud size={32} /></div>
               )}
-              <p className="text-xs font-black text-slate-500 uppercase">Upload University ID</p>
+              <p className="text-xs font-black text-slate-500 uppercase">{t('id_upload.label_upload')}</p>
               <input type="file" accept="image/*" id="id-input" className="hidden" onChange={handleFileChange} />
               <label htmlFor="id-input" className="mt-2 bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase cursor-pointer active:scale-95 shadow-lg">
-                {loading ? "COMPRESSING..." : "Select Image"}
+                {loading ? t('id_upload.btn_compressing') : t('id_upload.btn_select')}
               </label>
             </div>
           ) : (
@@ -105,7 +107,7 @@ const IDCardUpload = ({ onImageSelect, mode = "admin", isVerified = false }) => 
               </div>
               {mode === "ai" && (
                 <button type="button" onClick={handleAiVerify} disabled={loading} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase shadow-xl flex items-center justify-center gap-2">
-                  {loading ? <Loader2 className="animate-spin" size={16} /> : <><Zap size={16} fill="white"/> START AI VERIFICATION</>}
+                  {loading ? <Loader2 className="animate-spin" size={16} /> : <><Zap size={16} fill="white"/> {t('id_upload.btn_ai_start')}</>}
                 </button>
               )}
             </div>

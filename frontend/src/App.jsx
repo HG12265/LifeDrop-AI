@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster, toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 // --- Capacitor Plugins for Native Features ---
 import { StatusBar } from '@capacitor/status-bar';
@@ -13,7 +14,8 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer'; 
 import ChatBot from './components/ChatBot';
 import ConfirmModal from './components/ConfirmModal';
-import BroadcastAlert from './components/BroadcastAlert'; // Ensure this exists
+import BroadcastAlert from './components/BroadcastAlert';
+import LanguageSwitcher from './components/LanguageSwitcher';
 
 // --- Pages ---
 import Home from './pages/Home';
@@ -86,6 +88,7 @@ const NativeAppLogic = () => {
 };
 
 function App() {
+  const { t } = useTranslation();
   // --- User Session Logic (LocalStorage Sync) ---
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('lifedrop_user');
@@ -123,7 +126,7 @@ function App() {
     setUser(null);
     localStorage.removeItem('lifedrop_user');
     setShowLogoutConfirm(false);
-    toast.success("Logged out successfully!");
+    toast.success(t('app.toast_logout'));
   };
 
   return (
@@ -142,10 +145,10 @@ function App() {
         {/* CUSTOM LOGOUT CONFIRMATION MODAL */}
         <ConfirmModal 
           isOpen={showLogoutConfirm}
-          title="Confirm Logout"
-          message="Are you sure you want to sign out? You will need to login again to access your dashboard and alerts."
-          confirmText="YES, LOGOUT"
-          cancelText="STAY LOGGED IN"
+          title={t('app.modal_logout_title')}
+          message={t('app.modal_logout_msg')}
+          confirmText={t('app.btn_logout')}
+          cancelText={t('app.btn_stay')}
           onConfirm={finalizeLogout}
           onCancel={() => setShowLogoutConfirm(false)}
         />

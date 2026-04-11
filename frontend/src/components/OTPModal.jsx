@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { API_URL } from '../config'; 
 import { toast } from 'sonner';
 import { ShieldCheck, RefreshCcw, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const OTPModal = ({ email, onVerify, onClose, onResend }) => {
+  const { t } = useTranslation();
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleCheck = async () => {
     // 1. Basic Validation
-    if (otp.length !== 4) return toast.error("Please enter the 4-digit code sent to your email.");
+    if (otp.length !== 4) return toast.error(t('otp_modal.toast_4digit'));
     
     setLoading(true); // Loading starts here
 
@@ -37,12 +39,12 @@ const OTPModal = ({ email, onVerify, onClose, onResend }) => {
         // So namma inga setLoading(false) panna thevai illai.
       } else {
         // If OTP is wrong
-        toast.error(data.message || "Invalid OTP! Please check your email.");
+        toast.error(data.message || t('otp_modal.toast_invalid'));
         setLoading(false); // Revert button only on wrong OTP
       }
     } catch (err) {
-      console.toast.error("Verification Error:", err);
-      toast.error("Connection error. Please check if the server is running.");
+      console.error("Verification Error:", err);
+      toast.error(t('otp_modal.toast_conn_err'));
       setLoading(false); // Revert button on network error
     }
   };
@@ -56,9 +58,9 @@ const OTPModal = ({ email, onVerify, onClose, onResend }) => {
            <ShieldCheck size={40} className="text-red-600" />
         </div>
 
-        <h2 className="text-2xl font-black text-gray-800 tracking-tight">Verify Identity</h2>
+        <h2 className="text-2xl font-black text-gray-800 tracking-tight">{t('otp_modal.title')}</h2>
         <p className="text-gray-400 text-xs mt-2 px-4 leading-relaxed">
-            We've sent a secure 4-digit code to <br/>
+            {t('otp_modal.sent_to')} <br/>
             <span className="text-slate-800 font-bold break-all">{email}</span>
         </p>
 
@@ -89,10 +91,10 @@ const OTPModal = ({ email, onVerify, onClose, onResend }) => {
           {loading ? (
             <>
               <Loader2 size={20} className="animate-spin" />
-              VERIFYING...
+              {t('otp_modal.btn_verifying')}
             </>
           ) : (
-            "CONFIRM & REGISTER"
+            t('otp_modal.btn_confirm')
           )}
         </button>
 
@@ -103,7 +105,7 @@ const OTPModal = ({ email, onVerify, onClose, onResend }) => {
                 className="mt-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center justify-center gap-2 mx-auto hover:text-red-600 transition-colors group"
             >
                 <RefreshCcw size={12} className="group-hover:rotate-180 transition-transform duration-500" /> 
-                Resend Verification Code
+                {t('otp_modal.btn_resend')}
             </button>
         )}
 
@@ -113,7 +115,7 @@ const OTPModal = ({ email, onVerify, onClose, onResend }) => {
                 onClick={onClose}
                 className="mt-4 text-[10px] font-bold text-slate-300 uppercase hover:text-slate-500 transition-colors"
             >
-                Cancel the Registration
+                {t('otp_modal.btn_cancel')}
             </button>
         )}
       </div>

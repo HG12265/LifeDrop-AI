@@ -4,8 +4,10 @@ import { toast } from 'sonner';
 import { API_URL } from '../config';
 import LocationPicker from '../components/LocationPicker';
 import { User, Phone, Mail, MapPin, ShieldCheck, ArrowLeft, Save, Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const EditProfile = ({ user, setUser }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   
@@ -55,14 +57,14 @@ const EditProfile = ({ user, setUser }) => {
     const data = await res.json();
     if (res.ok && data.success) {
       setUser(data.user);
-      toast.success("Profile Updated!");
+      toast.success(t('edit_profile.toast_success'));
       navigate(-1);
     } else {
-      toast.error(data.message || "Update failed");
+      toast.error(data.message || t('edit_profile.toast_fail'));
     }
   } catch (err) {
     console.error("Network Error:", err);
-    toast.error("Connection error. Check if backend is live.");
+    toast.error(t('edit_profile.toast_conn_err'));
   } finally {
     setLoading(false);
   }
@@ -75,7 +77,7 @@ const EditProfile = ({ user, setUser }) => {
           <ArrowLeft size={24} />
         </button>
         <h2 className="text-2xl font-black italic tracking-tighter flex items-center gap-2">
-          <Settings className="text-red-600" /> Account Settings
+          <Settings className="text-red-600" /> {t('edit_profile.title')}
         </h2>
         <div className="w-12"></div> {/* Spacer */}
       </div>
@@ -84,11 +86,11 @@ const EditProfile = ({ user, setUser }) => {
         
         {/* Left: Basic Info */}
         <div className="bg-white p-8 rounded-[40px] shadow-xl border border-gray-50 space-y-6">
-          <h3 className="font-black text-gray-800 uppercase text-sm tracking-widest border-b pb-4">Personal Information</h3>
+          <h3 className="font-black text-gray-800 uppercase text-sm tracking-widest border-b pb-4">{t('edit_profile.section_personal')}</h3>
           
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Full Name</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">{t('edit_profile.label_name')}</label>
               <div className="relative">
                 <User className="absolute left-4 top-4 text-gray-300" size={18} />
                 <input 
@@ -100,7 +102,7 @@ const EditProfile = ({ user, setUser }) => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Phone Number</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">{t('edit_profile.label_phone')}</label>
               <div className="relative">
                 <Phone className="absolute left-4 top-4 text-gray-300" size={18} />
                 <input 
@@ -114,7 +116,7 @@ const EditProfile = ({ user, setUser }) => {
             <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3">
                <ShieldCheck className="text-blue-600 shrink-0" size={20} />
                <p className="text-[10px] font-bold text-blue-700 leading-relaxed uppercase">
-                 Email and Blood Group are verified and cannot be changed manually. Contact admin for corrections.
+                 {t('edit_profile.info_locked')}
                </p>
             </div>
           </div>
@@ -122,7 +124,7 @@ const EditProfile = ({ user, setUser }) => {
 
         {/* Right: Location Update */}
         <div className="bg-white p-8 rounded-[40px] shadow-xl border border-gray-50 space-y-6">
-          <h3 className="font-black text-gray-800 uppercase text-sm tracking-widest border-b pb-4">Location Settings</h3>
+          <h3 className="font-black text-gray-800 uppercase text-sm tracking-widest border-b pb-4">{t('edit_profile.section_location')}</h3>
           <LocationPicker position={position} setPosition={setPosition} />
           
           <button 
@@ -130,7 +132,7 @@ const EditProfile = ({ user, setUser }) => {
             disabled={loading}
             className="w-full bg-red-600 text-white py-5 rounded-[24px] font-black text-lg shadow-xl shadow-red-100 hover:bg-red-700 transition flex items-center justify-center gap-2 active:scale-95"
           >
-            {loading ? "SAVING..." : <><Save size={20}/> SAVE CHANGES</>}
+            {loading ? t('edit_profile.btn_saving') : <><Save size={20}/> {t('edit_profile.btn_save')}</>}
           </button>
         </div>
 

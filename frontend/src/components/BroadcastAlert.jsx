@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { API_URL } from '../config'; 
 import { Megaphone, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const BroadcastAlert = () => {
+  const { t } = useTranslation();
   const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
@@ -23,7 +25,7 @@ const BroadcastAlert = () => {
         <div key={a.id} className="bg-red-600 text-white p-5 rounded-[28px] shadow-2xl flex items-start gap-4 animate-in slide-in-from-right duration-500 relative overflow-hidden group">
           <div className="bg-white/20 p-2 rounded-full"><Megaphone size={20} /></div>
           <div className="flex-1">
-             <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Emergency Alert</p>
+             <p className="text-[10px] font-black uppercase tracking-widest opacity-60">{t('broadcast_alert.header')}</p>
              <p className="text-sm font-bold leading-tight mt-1">{a.message}</p>
           </div>
           <button onClick={() => dismissAlert(a.id)} className="text-white/40 hover:text-white transition"><X size={18}/></button>

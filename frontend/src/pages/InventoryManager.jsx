@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { API_URL } from '../config'; 
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Database, RefreshCw, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const InventoryManager = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,9 +38,9 @@ const InventoryManager = () => {
         <div className="flex items-center gap-4">
            <button onClick={() => navigate(-1)} className="bg-slate-100 p-2 rounded-xl text-slate-500"><ArrowLeft/></button>
            <div>
-              <h2 className="text-3xl font-black italic tracking-tighter">Blood Bank Inventory</h2>
+              <h2 className="text-3xl font-black italic tracking-tighter">{t('inventory.title')}</h2>
               <p className="text-[10px] font-black text-red-600 uppercase tracking-widest flex items-center gap-1">
-                 <Database size={12}/> Live Stock Management
+                 <Database size={12}/> {t('inventory.subtitle')}
               </p>
            </div>
         </div>
@@ -65,16 +67,16 @@ const InventoryManager = () => {
                 </div>
              </div>
 
-             <h4 className="text-3xl font-black text-gray-800">{item.units} <span className="text-xs text-gray-400 font-bold uppercase">Units</span></h4>
+             <h4 className="text-3xl font-black text-gray-800">{item.units} <span className="text-xs text-gray-400 font-bold uppercase">{t('inventory.unit_label')}</span></h4>
              
              {/* Critical Stock Warning */}
              {item.units < 5 && (
                 <p className="text-[9px] font-black text-red-500 flex items-center gap-1 mt-1 animate-pulse">
-                    <AlertTriangle size={10}/> LOW STOCK ALERT
+                    <AlertTriangle size={10}/> {t('inventory.low_stock_alert')}
                 </p>
              )}
 
-             <p className="text-[9px] text-gray-300 font-bold mt-4 uppercase">Last Updated: {item.updated}</p>
+             <p className="text-[9px] text-gray-300 font-bold mt-4 uppercase">{t('inventory.last_updated', { time: item.updated })}</p>
 
              {/* Controls */}
              <div className="mt-6 flex gap-3 w-full">
